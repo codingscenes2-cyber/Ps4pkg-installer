@@ -71,3 +71,6 @@ The pairing URL can now be rendered locally as a self-contained SVG QR code usin
 ## Storage discovery
 
 The portable storage adapter probes only caller-configured roots, such as the internal app data directory and USB mount points supplied by the platform startup layer. It reports capacity, available bytes and writability, skips missing/unmounted roots, rejects malformed or duplicate candidate IDs, and does not assume hard-coded Orbis mount paths. The phone API exposes volume IDs/labels/capacity but not mount paths. Download paths are derived from a sanitized filename under the configured download root through `make_storage_child_path`; clients cannot select arbitrary paths. The actual Orbis startup layer must supply verified mount candidates and choose the download root.
+
+
+The phone UI now includes a storage selector. A download request may include `X-PKGMaster-Storage: <configured-volume-id>`; the controller re-probes the configured volume, requires it to be writable, and saves beneath that volume's `PKGMaster/Downloads` directory. Unknown, missing or read-only selections are rejected. Omitting the header uses the app-configured default download directory. The phone receives only volume IDs, labels and capacity—not mount paths.
