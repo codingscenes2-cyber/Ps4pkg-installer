@@ -301,7 +301,7 @@ int main() {
 
                 if (pressed & ORBIS_PAD_BUTTON_UP) {
                     if (page == 0) selected = (selected + 3) % 4;
-                    else if (!packages.empty()) packageSelected =
+                    else if (page == 1 && !packages.empty()) packageSelected =
                         (packageSelected + static_cast<int>(packages.size()) - 1) %
                         static_cast<int>(packages.size());
                 }
