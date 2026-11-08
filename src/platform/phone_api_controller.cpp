@@ -88,14 +88,17 @@ PhoneHttpResponse json_response(int status, const std::string& body) {
 }
 PhoneApiController::PhoneApiController(Queue& queue, DownloadCoordinator& downloads,
                                        std::string downloads_directory,
-                                       std::string library_index_path)
+                                       std::string library_index_path,
+                                       bool run_download_worker)
     : queue_(queue), downloads_(downloads),
       downloads_directory_(std::move(downloads_directory)),
-      library_index_path_(std::move(library_index_path)),
-      worker_(&PhoneApiController::worker_loop, this) {
-    for (const auto& job : queue_.snapshot())
-        if (job.state == JobState::Queued || job.state == JobState::Resolving ||
-            job.state == JobState::Downloading) enqueue(job.id);
+      library_index_path_(std::move(library_index_path)) {
+    if (run_download_worker) {
+        worker_ = std::thread(&PhoneApiController::worker_loop, this);
+        for (const auto& job : queue_.snapshot())
+            if (job.state == JobState::Queued || job.state == JobState::Resolving ||
+                job.state == JobState::Downloading) enqueue(job.id);
+    }
 }
 PhoneApiController::~PhoneApiController() {
     std::uint64_t active = 0;
