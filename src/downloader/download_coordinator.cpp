@@ -13,6 +13,7 @@ bool update_state(Queue& queue,std::uint64_t id,JobState state) {
 CoordinatedDownloadResult DownloadCoordinator::run(std::uint64_t id,
         HttpDownloadOptions options,unsigned connections,std::uint64_t minimum_part_bytes) {
     CoordinatedDownloadResult out;
+    if(options.cancel){out.error="DownloadCoordinator owns the cancellation flag; do not pass an external cancel pointer.";return out;}
     auto initial=queue_.get(id);
     if(!initial){out.error="Queue job was not found.";return out;}
     if(initial->state==JobState::Queued) {
