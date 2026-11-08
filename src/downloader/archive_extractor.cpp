@@ -65,11 +65,12 @@ ArchiveExtractResult extract_archive_safely(const ArchiveExtractOptions& o) {
         if(next!=ARCHIVE_OK){const std::string message=archive_error_string(reader)?archive_error_string(reader):"Archive header is corrupt.";archive_read_close(reader);archive_read_free(reader);return fail(message);}
         const char* raw=archive_entry_pathname_utf8(entry);
         if(!raw)raw=archive_entry_pathname(entry);
-        const std::string name=raw?raw:"";
+        std::string name=raw?raw:"";
+        const auto type=archive_entry_filetype(entry);
+        if(type==AE_IFDIR)while(!name.empty()&&name.back()=='/')name.pop_back();
         std::string path_error;
         if(!is_safe_archive_entry_path(name,path_error)){archive_read_close(reader);archive_read_free(reader);return fail(path_error);}
         if(archive_entry_symlink(entry)||archive_entry_hardlink(entry)){archive_read_close(reader);archive_read_free(reader);return fail("Symbolic and hard links are not permitted in archives.");}
-        const auto type=archive_entry_filetype(entry);
         const fs::path target=destination/fs::path(name);
         if(type==AE_IFDIR) {
             fs::create_directories(target,ec);
