@@ -51,3 +51,11 @@ For this milestone, verify:
 7. Selecting a PKG does not install it yet; it only displays a status message.
 
 If video initialization or USB directory access fails, report that separately from a package installation failure.
+
+## Native package installation adapter (new development work)
+
+The current installer branch now includes an AppInstUtil/BGFT adapter and a confirmation/progress UI flow for a locally selected USB PKG. Before BGFT submission, the app checks the file size and PS4 PKG magic, asks AppInstUtil for the package title ID, and compares it with parsed SFO metadata when available. It then registers and starts a BGFT storage task and polls task progress.
+
+**This is an implementation under validation, not a hardware-qualified installer yet.** CI can verify compilation and packaging only. Actual BGFT initialization, task registration, progress reporting and install completion must be tested on a physical PS4 / compatible GoldHEN environment. The UI intentionally distinguishes transfer completion from confirmed final installation. Only use PKGs you own or are authorized to install.
+
+Controls in the new flow: Cross from package details opens a confirmation screen; Cross again submits the task; Circle cancels before submission or returns after a terminal task result.
