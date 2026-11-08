@@ -16,7 +16,7 @@ A modular PS4 homebrew package-library and download-manager project. The portabl
 | Interrupted-transfer recovery | Resume manifest v2 stores URL, strong ETag, object length, range map and CRC32 per completed chunk; re-probes identity and verifies recovered chunks before reuse |
 | Whole-file integrity | Optional caller-supplied trusted SHA-256 digest before publishing either single-stream or parallel downloads |
 | Download coordinator | Connects queue state to probe, parallel/single-stream selection, cancellation and ready-to-install state; invoke from a worker thread |
-| Archive extraction | Optional libarchive-backed extraction with staging directory, path/link/special-file rejection and file/size/expansion limits |
+| Archive extraction | Optional libarchive-backed extraction with staging directory, path/link/special-file rejection and file/size/expansion limits |\n| PS4 package metadata | Bounded PARAM.SFO parser for TITLE, TITLE_ID, APP_VER, CATEGORY and SYSTEM_VER; library scanner/UI integration pending |
 | Compatibility model | Runtime/capability data model and feature gating; this is not yet a complete PS4 runtime probe |
 
 ## Not yet implemented / not yet validated
