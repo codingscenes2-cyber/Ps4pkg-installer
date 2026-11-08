@@ -1,4 +1,5 @@
 #include "pkgmaster/platform/phone_lan_server.hpp"
+#include "pkgmaster/platform/phone_web_ui.hpp"
 #include <algorithm>
 #include <chrono>
 #include <cctype>
@@ -136,6 +137,9 @@ void send_response(Socket client, const PhoneHttpResponse& response) {
          << "Content-Length: " << response.body.size() << "\r\n"
          << "Cache-Control: no-store\r\n"
          << "X-Content-Type-Options: nosniff\r\n"
+         << "X-Frame-Options: DENY\r\n"
+         << "Referrer-Policy: no-referrer\r\n"
+         << "Content-Security-Policy: default-src 'none'; script-src 'self'; connect-src 'self'; style-src 'unsafe-inline'; base-uri 'none'; form-action 'self'; frame-ancestors 'none'\r\n"
          << "Connection: close\r\n\r\n";
     send_all(client, head.str() + response.body);
 }
@@ -303,6 +307,20 @@ void PhoneLanServer::handle_client(std::intptr_t client_fd) {
     std::string error;
     if (!parse_phone_http_request(bytes, {}, request, error)) {
         send_response(client, error_response(400, "invalid_request"));
+        return;
+    }
+    if (request.method == "GET" && (request.target == "/" || request.target == "/pair")) {
+        PhoneHttpResponse page;
+        page.content_type = "text/html; charset=utf-8";
+        page.body = phone_web_ui_html();
+        send_response(client, page);
+        return;
+    }
+    if (request.method == "GET" && request.target == "/app.js") {
+        PhoneHttpResponse script;
+        script.content_type = "application/javascript; charset=utf-8";
+        script.body = phone_web_ui_javascript();
+        send_response(client, script);
         return;
     }
     const auto now = monotonic_ms();
