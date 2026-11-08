@@ -14,6 +14,7 @@
 #include <thread>
 #include <vector>
 #include <algorithm>
+#include <cctype>
 #ifdef PKGMASTER_HAS_CURL
 #include <curl/curl.h>
 #if defined(__unix__) || defined(__APPLE__)
