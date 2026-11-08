@@ -12,6 +12,8 @@ public:
     bool resume(std::uint64_t id);
     bool retry(std::uint64_t id);
     bool cancel(std::uint64_t id);
+    // Replaces the queue only when every restored record is valid and IDs are unique.
+    bool restore(const std::vector<Job>& jobs);
     std::optional<Job> get(std::uint64_t id) const;
     std::vector<Job> snapshot() const;
 private:

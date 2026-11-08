@@ -1,10 +1,14 @@
 #include "pkgmaster/core/job.hpp"
 #include "pkgmaster/core/queue.hpp"
+#include "pkgmaster/core/queue_store.hpp"
 #include "pkgmaster/core/url_policy.hpp"
 #include "pkgmaster/core/state_transition.hpp"
 #include "pkgmaster/downloader/range_plan.hpp"
 #include "pkgmaster/platform/capabilities.hpp"
 #include <cassert>
+#include <cstdio>
+#include <string>
+#include <vector>
 int main() {
  pkgmaster::Job j; j.expected_bytes=200; j.received_bytes=50; assert(j.progress()>0.249&&j.progress()<0.251); assert(!j.terminal());
  pkgmaster::Queue q; auto id=q.add(j); assert(q.get(id).has_value()); assert(q.cancel(id)); assert(q.get(id)->terminal());
@@ -19,5 +23,22 @@ int main() {
  int a=0,b=0,c=0; assert(pkgmaster::parse_firmware_version("14.00",a,b,c)); assert(a==14&&b==0&&c==0); assert(pkgmaster::parse_firmware_version("11.02.03",a,b,c)); assert(a==11&&b==2&&c==3); assert(!pkgmaster::parse_firmware_version("14.x",a,b,c));
  pkgmaster::RuntimeInfo r; assert(!pkgmaster::evaluate_feature(r,pkgmaster::Capability::NetworkClient).available);
  r.available=static_cast<std::uint32_t>(pkgmaster::Capability::NetworkClient|pkgmaster::Capability::FileSystem); assert(pkgmaster::evaluate_feature(r,pkgmaster::Capability::NetworkClient).available); assert(!pkgmaster::evaluate_feature(r,pkgmaster::Capability::NetworkServer).available);
+
+ // Persistence round-trip, including tabs/newlines and non-ASCII byte sequences.
+ pkgmaster::Job saved; saved.id=41; saved.source_url="https://host/file.pkg?x=1"; saved.file_name="game\tname.pkg";
+ saved.local_path="/data/pkgmaster/game.pkg"; saved.expected_bytes=1000; saved.received_bytes=375;
+ saved.state=pkgmaster::JobState::Paused; saved.error="temporary\nnetwork issue";
+ const std::string store_path="pkgmaster-test-queue.db";
+ assert(pkgmaster::QueueStore::save(store_path,{saved},e));
+ std::vector<pkgmaster::Job> restored;
+ assert(pkgmaster::QueueStore::load(store_path,restored,e));
+ assert(restored.size()==1 && restored[0].id==41 && restored[0].file_name==saved.file_name);
+ assert(restored[0].error==saved.error && restored[0].received_bytes==375);
+ pkgmaster::Queue recovered; assert(recovered.restore(restored));
+ auto next=recovered.add(pkgmaster::Job{}); assert(next==42);
+ std::vector<pkgmaster::Job> unchanged(1); unchanged[0].id=999;
+ assert(!pkgmaster::QueueStore::load("missing-pkgmaster-file.db",unchanged,e));
+ assert(unchanged.size()==1 && unchanged[0].id==999);
+ std::remove(store_path.c_str());
  return 0;
 }

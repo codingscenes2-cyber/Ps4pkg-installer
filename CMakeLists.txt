@@ -4,7 +4,7 @@ set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 add_library(pkgmaster_core
- src/core/job.cpp src/core/queue.cpp src/core/url_policy.cpp src/core/state_transition.cpp
+ src/core/job.cpp src/core/queue.cpp src/core/queue_store.cpp src/core/url_policy.cpp src/core/state_transition.cpp
  src/downloader/range_plan.cpp src/platform/installer_bridge.cpp src/platform/capabilities.cpp)
 target_include_directories(pkgmaster_core PUBLIC include)
 add_executable(pkgmaster_core_demo src/main.cpp)
