@@ -37,9 +37,11 @@ struct Body {
     const std::atomic_bool* failed{};
 };
 std::string trim(const std::string& v) {
-    const auto a=v.find_first_not_of(" \t\r\n");
+    const auto a=v.find_first_not_of(" \t\r
+");
     if(a==std::string::npos)return {};
-    return v.substr(a,v.find_last_not_of(" \t\r\n")-a+1);
+    return v.substr(a,v.find_last_not_of(" \t\r
+")-a+1);
 }
 size_t header_cb(char* p,size_t size,size_t count,void* opaque) {
     if(size&&count>std::numeric_limits<size_t>::max()/size)return 0;
@@ -116,7 +118,8 @@ ParallelRangeResult download_http_ranges(const ParallelRangeOptions& o) {
     const auto& t=o.transfer;
     if(t.url.empty()||t.destination_path.empty()||!t.maximum_bytes||
        t.connect_timeout_ms<=0||t.total_timeout_seconds<0||o.connections<2||
-       o.connections>8||!o.minimum_part_bytes||\n       t.maximum_bytes_per_second>static_cast<std::uint64_t>(std::numeric_limits<std::int64_t>::max())){out.error="Invalid parallel download options.";return out;}
+       o.connections>8||!o.minimum_part_bytes||
+       t.maximum_bytes_per_second>static_cast<std::uint64_t>(std::numeric_limits<std::int64_t>::max())){out.error="Invalid parallel download options.";return out;}
     std::string policy_error;
     if(!is_allowed_download_url(t.url,policy_error)){out.error=policy_error;return out;}
 #ifndef PKGMASTER_HAS_CURL
