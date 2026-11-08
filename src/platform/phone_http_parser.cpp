@@ -75,7 +75,7 @@ bool parse_phone_http_request(const std::string& bytes,
     parsed.method = request_line.substr(0, first_space);
     parsed.target = request_line.substr(first_space + 1, second_space - first_space - 1);
     parsed.version = request_line.substr(second_space + 1);
-    if ((parsed.method != "GET" && parsed.method != "POST") ||
+    if ((parsed.method != "GET" && parsed.method != "POST" && parsed.method != "DELETE") ||
         parsed.version != "HTTP/1.1" || parsed.target.empty() || parsed.target[0] != '/' ||
         parsed.target.find('#') != std::string::npos || has_bad_control(parsed.target, false) ||
         parsed.target.find('\\') != std::string::npos) {
@@ -120,7 +120,7 @@ bool parse_phone_http_request(const std::string& bytes,
         error = "Invalid Content-Length"; return false;
     }
     if (body_length > limits.max_body_bytes ||
-        (parsed.method == "GET" && body_length != 0) ||
+        (parsed.method != "POST" && body_length != 0) ||
         (parsed.method == "POST" && length_it == parsed.headers.end())) {
         error = "HTTP body length is not permitted"; return false;
     }
