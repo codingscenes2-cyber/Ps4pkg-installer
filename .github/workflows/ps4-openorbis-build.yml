@@ -72,6 +72,7 @@ jobs:
           test -s ps4/PKGMaster/IV0000-PKGM00001_00-PKGMASTER0000001.pkg
           file ps4/PKGMaster/eboot.bin ps4/PKGMaster/IV0000-PKGM00001_00-PKGMASTER0000001.pkg
           "$OO_PS4_TOOLCHAIN/bin/linux/PkgTool.Core" pkg_listentries ps4/PKGMaster/IV0000-PKGM00001_00-PKGMASTER0000001.pkg
+          "$OO_PS4_TOOLCHAIN/bin/linux/PkgTool.Core" pkg_listfiles --verbose ps4/PKGMaster/IV0000-PKGM00001_00-PKGMASTER0000001.pkg
           sha256sum ps4/PKGMaster/eboot.bin ps4/PKGMaster/IV0000-PKGM00001_00-PKGMASTER0000001.pkg
 
       - name: Upload PS4 test package
