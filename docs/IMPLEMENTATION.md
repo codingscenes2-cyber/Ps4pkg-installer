@@ -80,3 +80,8 @@ HTTP download options now expose a live metrics callback with received/total byt
 ## Queue download coordinator
 
 DownloadCoordinator connects queue jobs to the HTTP engines. It moves jobs through Resolving, Downloading, Verifying and ReadyToInstall, persists byte progress through Queue updates, selects parallel range mode only when the probe confirms range support and a strong ETag, and otherwise uses the single-stream HTTP path. It owns the active cancellation flag and exposes pause/cancel/resume controls. Pause is offered only while a resumable parallel transfer is active; single-stream transfers do not claim pause/resume support. The coordinator is synchronous and must be invoked on a worker thread by the future UI. ReadyToInstall means the file is downloaded and ready for a separately validated native installer handoff; it does not mean installation occurred.
+
+
+## Trusted package SHA-256 verification
+
+Callers may optionally provide a trusted 64-character hexadecimal SHA-256 digest in HttpDownloadOptions. Both single-stream and parallel transfers compute SHA-256 over the completed staging file and refuse to publish it if the digest differs. The parallel resume manifest still uses per-range CRC32 for efficient local recovery; the final SHA-256 is a separate whole-file integrity check. No digest is guessed or fetched from an untrusted mirror: the caller must obtain the expected value from a trusted source. If no expected digest is supplied, the downloader performs the existing length and range checks but cannot claim cryptographic authenticity.
