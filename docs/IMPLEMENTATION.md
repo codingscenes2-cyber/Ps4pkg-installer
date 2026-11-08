@@ -85,3 +85,8 @@ DownloadCoordinator connects queue jobs to the HTTP engines. It moves jobs throu
 ## Trusted package SHA-256 verification
 
 Callers may optionally provide a trusted 64-character hexadecimal SHA-256 digest in HttpDownloadOptions. Both single-stream and parallel transfers compute SHA-256 over the completed staging file and refuse to publish it if the digest differs. The parallel resume manifest still uses per-range CRC32 for efficient local recovery; the final SHA-256 is a separate whole-file integrity check. No digest is guessed or fetched from an untrusted mirror: the caller must obtain the expected value from a trusted source. If no expected digest is supplied, the downloader performs the existing length and range checks but cannot claim cryptographic authenticity.
+
+
+## Safe archive extraction
+
+An optional libarchive-backed extractor now handles supported archive formats when libarchive is present in the build. It extracts into a new staging directory, rejects absolute paths, parent/current/empty path components, backslashes, drive-like paths, symlinks, hardlinks and special files, and enforces file-count, per-file, total-size and expansion-ratio limits. Passwords are supplied explicitly by the caller; no password guessing is performed. PKG detection is extension-based after extraction and is not package authenticity validation. If libarchive is absent, the feature reports Unsupported. The host CI installs libarchive; a compatible PS4 port and real-console extraction test are still required before enabling this capability on PS4. Multi-volume archive behavior is dependent on the linked libarchive build and has not been validated.
