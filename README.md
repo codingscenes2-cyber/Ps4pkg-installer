@@ -27,7 +27,7 @@ PKGMaster is being developed to discover package files on USB/internal storage, 
 - The SFO parser may not be able to display metadata from every package; AppInstUtil is asked to inspect the selected package before BGFT submission.
 - No package-signature or license bypass is implemented. Use only PKGs you own or are authorized to install.
 
-See [PS4 build and test notes](ps4/PKGMaster/README.md).
+See [PS4 build and test notes](ps4/PKGMaster/README.md), the [PKG format and BGFT installation walkthrough](docs/PKG_FORMAT_AND_BUILD.md), and the [0.2.0 native-installer preview notes](docs/RELEASE_NOTES_0.2.0-native-installer-preview.md).
 
 ## Portable C++ core
 
