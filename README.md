@@ -19,7 +19,7 @@ See docs/COMPATIBILITY.md and docs/IMPLEMENTATION.md.
 | Queue persistence | Versioned snapshot load/save; metadata only |
 | HTTP/HTTPS downloads | Single-stream libcurl transport, size cap, progress, cancellation, redirect refusal, temporary-file publish |
 | Multi-range downloads | Overflow-safe planner and strict range-response validation; parallel transport pending |
-| Resume metadata | Versioned atomic manifest stores ETag, total size and contiguous per-range completion; partial-file resume orchestration pending |
+| Resume metadata | Versioned atomic manifest stores a validated source URL, strong ETag, total size and contiguous per-range completion; partial-file resume orchestration pending |
 | Phone submission | Static web UI; authenticated HTTP service pending |
 | QR pairing | API contract only; generation and session exchange pending |
 | Native PS4 UI/controller | Backend boundary only |
