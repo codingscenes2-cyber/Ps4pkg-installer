@@ -27,6 +27,7 @@ public:
                      std::string& error);
     bool chunk_complete(std::size_t index) const;
     bool verify_chunk_checksum(std::size_t index, std::uint32_t expected, std::string& error);
+    bool invalidate_chunk(std::size_t index, std::string& error);
     bool complete() const;
     bool finalize(std::string& error);
     const std::string& temporary_path() const noexcept { return temporary_path_; }
