@@ -7,6 +7,8 @@
 #include "pkgmaster/platform/capabilities.hpp"
 #include <cassert>
 #include <cstdio>
+#include <cstdint>
+#include <limits>
 #include <string>
 #include <vector>
 int main() {
@@ -16,8 +18,15 @@ int main() {
  pkgmaster::Job f; f.state=pkgmaster::JobState::Failed; f.received_bytes=12; f.error="network"; auto fid=q.add(f); assert(q.retry(fid)); assert(q.get(fid)->received_bytes==0&&q.get(fid)->error.empty()&&q.get(fid)->state==pkgmaster::JobState::Queued);
  std::string reason; assert(pkgmaster::is_allowed_download_url("https://example.com/file.pkg",reason)); assert(!pkgmaster::is_allowed_download_url("file:///etc/passwd",reason)); assert(!pkgmaster::is_allowed_download_url("http://127.0.0.1/file.pkg",reason));
  assert(pkgmaster::can_transition(pkgmaster::JobState::Queued,pkgmaster::JobState::Resolving)); assert(!pkgmaster::can_transition(pkgmaster::JobState::Completed,pkgmaster::JobState::Downloading));
+ const auto huge_plan=pkgmaster::make_range_plan(std::numeric_limits<std::uint64_t>::max(),4,1024*1024); assert(huge_plan.parts.size()==4); assert(huge_plan.parts.front().first==0&&huge_plan.parts.back().last==std::numeric_limits<std::uint64_t>::max()-1);
  const auto plan=pkgmaster::make_range_plan(10*1024*1024,4,1024*1024); assert(plan.parts.size()==4&&plan.parts.front().first==0&&plan.parts.back().last==plan.total_bytes-1);
  for(std::size_t i=1;i<plan.parts.size();++i) assert(plan.parts[i-1].last+1==plan.parts[i].first);
+ std::uint64_t cr_first=9,cr_last=9,cr_total=9;
+ assert(pkgmaster::parse_content_range_header("bytes 0-99/100",cr_first,cr_last,cr_total,reason));
+ assert(cr_first==0&&cr_last==99&&cr_total==100);
+ assert(!pkgmaster::parse_content_range_header("bytes 0-100/100",cr_first,cr_last,cr_total,reason));
+ assert(!pkgmaster::parse_content_range_header("bytes 0-99/*",cr_first,cr_last,cr_total,reason));
+ assert(!pkgmaster::parse_content_range_header("bytes 0-18446744073709551616/200",cr_first,cr_last,cr_total,reason));
  std::string e; assert(pkgmaster::validate_range_reply({0,99},{206,0,99,100,100,"etag"},100,e));
  assert(!pkgmaster::is_allowed_download_url("http://172.31.2.4/file.pkg",reason)); assert(!pkgmaster::is_allowed_download_url("https://192.168.1.8:8080/a.pkg",reason)); assert(!pkgmaster::is_allowed_download_url("http://[::1]/a.pkg",reason)); assert(!pkgmaster::is_allowed_download_url("http://[fd00::1]/a.pkg",reason));
  int a=0,b=0,c=0; assert(pkgmaster::parse_firmware_version("14.00",a,b,c)); assert(a==14&&b==0&&c==0); assert(pkgmaster::parse_firmware_version("11.02.03",a,b,c)); assert(a==11&&b==2&&c==3); assert(!pkgmaster::parse_firmware_version("14.x",a,b,c));
