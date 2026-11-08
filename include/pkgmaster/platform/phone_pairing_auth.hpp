@@ -10,6 +10,11 @@ public:
     // pairing_secret and session_token must each be 64 lowercase/uppercase hex
     // characters representing 32 bytes from an operating-system CSPRNG.
     // Pairing lifetime is capped at 5 minutes; session lifetime at 30 days.
+    bool arm_random(std::uint64_t now_ms,
+                    std::uint64_t pairing_lifetime_ms,
+                    std::uint64_t session_lifetime_ms,
+                    std::string& pairing_secret_out,
+                    std::string& error);
     bool arm(const std::string& pairing_secret,
              const std::string& session_token,
              std::uint64_t now_ms,
