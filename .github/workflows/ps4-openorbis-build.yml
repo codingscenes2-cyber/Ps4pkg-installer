@@ -1,0 +1,103 @@
+name: PS4 OpenOrbis build
+
+on:
+  push:
+    branches: [main, "work/**"]
+    paths:
+      - "ps4/PKGMaster/**"
+      - ".github/workflows/ps4-openorbis-build.yml"
+  pull_request:
+    branches: [main]
+    paths:
+      - "ps4/PKGMaster/**"
+      - ".github/workflows/ps4-openorbis-build.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  ps4-package:
+    name: Build PS4 ELF and PKG
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install host build tools
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y clang lld make python3 curl g++
+
+      - name: Download pinned OpenOrbis toolchain
+        env:
+          OO_RELEASE_URL: https://github.com/OpenOrbis/OpenOrbis-PS4-Toolchain/releases/download/v0.5.4/toolchain-llvm-18.tar.gz
+          OO_SHA256: 3c7cd5bb593ca74fa1c13fd59f3938dc0fc07985167f7275063019e63abe4526
+        run: |
+          set -euo pipefail
+          curl --fail --location --retry 3 "$OO_RELEASE_URL" -o "$RUNNER_TEMP/openorbis.tar.gz"
+          echo "$OO_SHA256  $RUNNER_TEMP/openorbis.tar.gz" | sha256sum --check -
+          mkdir -p "$RUNNER_TEMP/openorbis"
+          tar -xzf "$RUNNER_TEMP/openorbis.tar.gz" -C "$RUNNER_TEMP/openorbis"
+          SDK_ROOT="$(find "$RUNNER_TEMP/openorbis" -type f -name link.x -printf '%h\n' -quit)"
+          test -n "$SDK_ROOT"
+          echo "OO_PS4_TOOLCHAIN=$SDK_ROOT" >> "$GITHUB_ENV"
+          echo "OpenOrbis root: $SDK_ROOT"
+          find "$SDK_ROOT/bin/linux" -maxdepth 1 -type f -printf '%f\n' | sort
+          chmod +x "$SDK_ROOT"/bin/linux/*
+
+      - name: Provide isolated OpenSSL 1.1 compatibility for legacy PkgTool.Core
+        run: |
+          set -euo pipefail
+          echo "deb [arch=amd64] https://security.ubuntu.com/ubuntu focal-security main" | sudo tee /etc/apt/sources.list.d/focal-ssl-compat.list
+          sudo apt-get update
+          mkdir -p "$RUNNER_TEMP/openssl11-deb" "$RUNNER_TEMP/openssl11"
+          cd "$RUNNER_TEMP/openssl11-deb"
+          apt-get download libssl1.1=1.1.1f-1ubuntu2.24
+          dpkg-deb -x libssl1.1_1.1.1f-1ubuntu2.24_amd64.deb "$RUNNER_TEMP/openssl11"
+          echo "LD_LIBRARY_PATH=$RUNNER_TEMP/openssl11/usr/lib/x86_64-linux-gnu" >> "$GITHUB_ENV"
+          test -s "$RUNNER_TEMP/openssl11/usr/lib/x86_64-linux-gnu/libssl.so.1.1"
+          test -s "$RUNNER_TEMP/openssl11/usr/lib/x86_64-linux-gnu/libcrypto.so.1.1"
+
+      - name: Generate package icon
+        run: python3 ps4/PKGMaster/tools/make_icon.py
+
+      - name: Cross-compile and package
+        run: make -C ps4/PKGMaster clean all
+
+      - name: Verify outputs
+        run: |
+          set -euo pipefail
+          test -s ps4/PKGMaster/eboot.bin
+          test -s ps4/PKGMaster/IV0000-PKGM00001_00-PKGMASTER0000001.pkg
+          file ps4/PKGMaster/eboot.bin ps4/PKGMaster/IV0000-PKGM00001_00-PKGMASTER0000001.pkg
+          "$OO_PS4_TOOLCHAIN/bin/linux/PkgTool.Core" pkg_listentries ps4/PKGMaster/IV0000-PKGM00001_00-PKGMASTER0000001.pkg
+          rm -rf "$RUNNER_TEMP/pkgmaster-pkg-inspect"
+          mkdir -p "$RUNNER_TEMP/pkgmaster-pkg-inspect"
+          "$OO_PS4_TOOLCHAIN/bin/linux/PkgTool.Core" pkg_extract --verbose ps4/PKGMaster/IV0000-PKGM00001_00-PKGMASTER0000001.pkg "$RUNNER_TEMP/pkgmaster-pkg-inspect"
+          test -s "$RUNNER_TEMP/pkgmaster-pkg-inspect/uroot/eboot.bin"
+          "$OO_PS4_TOOLCHAIN/bin/linux/PkgTool.Core" pkg_extractentry ps4/PKGMaster/IV0000-PKGM00001_00-PKGMASTER0000001.pkg 9 "$RUNNER_TEMP/pkgmaster-param.sfo"
+          "$OO_PS4_TOOLCHAIN/bin/linux/PkgTool.Core" pkg_extractentry ps4/PKGMaster/IV0000-PKGM00001_00-PKGMASTER0000001.pkg 13 "$RUNNER_TEMP/pkgmaster-icon0.png"
+          test -s "$RUNNER_TEMP/pkgmaster-param.sfo"
+          test -s "$RUNNER_TEMP/pkgmaster-icon0.png"
+          g++ -std=c++17 -Iinclude -Ips4/PKGMaster/src \
+            ps4/PKGMaster/src/pkg_inspector.cpp \
+            src/package/param_sfo.cpp \
+            ps4/PKGMaster/tests/inspect_pkg_host.cpp \
+            -o "$RUNNER_TEMP/pkgmaster-inspect-host"
+          "$RUNNER_TEMP/pkgmaster-inspect-host" ps4/PKGMaster/IV0000-PKGM00001_00-PKGMASTER0000001.pkg | tee "$RUNNER_TEMP/pkgmaster-metadata.txt"
+          grep -F "TITLE=PKGMaster PS4 Boot Test" "$RUNNER_TEMP/pkgmaster-metadata.txt"
+          grep -F "TITLE_ID=PKGM00001" "$RUNNER_TEMP/pkgmaster-metadata.txt"
+          grep -F "APP_VER=0.1.0" "$RUNNER_TEMP/pkgmaster-metadata.txt"
+          sha256sum ps4/PKGMaster/eboot.bin ps4/PKGMaster/IV0000-PKGM00001_00-PKGMASTER0000001.pkg
+
+      - name: Upload PS4 test package
+        uses: actions/upload-artifact@v4
+        with:
+          name: pkgmaster-ps4-boot-test
+          path: |
+            ps4/PKGMaster/IV0000-PKGM00001_00-PKGMASTER0000001.pkg
+            ps4/PKGMaster/eboot.bin
+            ps4/PKGMaster/pkg.gp4
+          if-no-files-found: error
+          retention-days: 14
