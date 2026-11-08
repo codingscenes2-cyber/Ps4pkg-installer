@@ -35,6 +35,29 @@ int main() {
     assert(actual == "ABCDEFGHIJ");
     std::remove(destination.c_str());
 
+
+    // A validated manifest can reopen a same-sized staging file and continue
+    // only ranges that were not checkpointed as complete.
+    const auto recovery_plan = pkgmaster::make_range_plan(10, 2, 1);
+    {
+        pkgmaster::RangeFileAssembler interrupted;
+        assert(interrupted.create(destination, recovery_plan, 100, false, error));
+        assert(interrupted.write_chunk(1, second.data(), second.size(), error));
+    }
+    pkgmaster::RangeFileAssembler recovered;
+    assert(recovered.open_existing(destination, recovery_plan, 100, false,
+                                   std::vector<bool>{false, true}, error));
+    assert(recovered.chunk_complete(1));
+    assert(!recovered.chunk_complete(0));
+    assert(recovered.write_chunk(0, first.data(), first.size(), error));
+    assert(recovered.complete());
+    assert(recovered.finalize(error));
+    std::ifstream recovered_input(destination, std::ios::binary);
+    const std::string recovered_data((std::istreambuf_iterator<char>(recovered_input)),
+                                     std::istreambuf_iterator<char>());
+    assert(recovered_data == "ABCDEFGHIJ");
+    std::remove(destination.c_str());
+
     // A pre-existing staging file may contain recoverable data; never truncate it.
     { std::ofstream old(staging, std::ios::binary); old << "keep"; }
     pkgmaster::RangeFileAssembler protected_file;

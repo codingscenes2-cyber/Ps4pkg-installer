@@ -3,6 +3,7 @@
 #include <cstdio>
 #include <fstream>
 #include <limits>
+#include <filesystem>
 
 namespace pkgmaster {
 namespace {
@@ -82,6 +83,40 @@ bool RangeFileAssembler::create(const std::string& destination,
     overwrite_ = overwrite;
     completed_.assign(plan.parts.size(), false);
     plan_ = plan;
+    initialized_ = true;
+    error.clear();
+    return true;
+}
+
+bool RangeFileAssembler::open_existing(const std::string& destination,
+                                         const RangePlan& plan,
+                                         std::uint64_t maximum_bytes,
+                                         bool overwrite,
+                                         const std::vector<bool>& completed,
+                                         std::string& error) {
+    std::lock_guard<std::mutex> lock(mutex_);
+    if (initialized_) { error = "Range assembler has already been initialized."; return false; }
+    if (destination.empty() || !valid_plan(plan) || plan.total_bytes > maximum_bytes ||
+        plan.total_bytes > static_cast<std::uint64_t>(std::numeric_limits<std::streamoff>::max()) ||
+        completed.size() != plan.parts.size()) {
+        error = "Invalid recovery destination, plan, size limit or completion map."; return false;
+    }
+    destination_path_ = destination;
+    temporary_path_ = destination + ".part";
+    std::error_code ec;
+    const auto size = std::filesystem::file_size(temporary_path_, ec);
+    if (ec || size != plan.total_bytes) {
+        error = "Existing staging file is missing or has an unexpected size."; return false;
+    }
+    if (!overwrite && path_exists(destination)) {
+        error = "Final destination already exists; refusing to resume over it."; return false;
+    }
+    file_.open(temporary_path_, std::ios::binary | std::ios::in | std::ios::out);
+    if (!file_) { error = "Could not reopen the existing staging file."; return false; }
+    destination_path_ = destination;
+    plan_ = plan;
+    completed_ = completed;
+    overwrite_ = overwrite;
     initialized_ = true;
     error.clear();
     return true;
