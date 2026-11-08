@@ -33,5 +33,12 @@ int main() {
     assert(auth.arm(pairing, session, 0, 1000, 60000, error));
     assert(!auth.exchange(pairing, 1000, issued)); // expiry is exclusive
     assert(!auth.authenticate(session, 1000));
+    std::string generated_pairing;
+    assert(auth.arm_random(5000, 60000, 3600000, generated_pairing, error));
+    assert(generated_pairing.size() == 64);
+    assert(auth.pairing_pending());
+    assert(auth.exchange(generated_pairing, 5001, issued));
+    assert(auth.authenticate(issued, 5002));
+    auth.revoke();
     std::cout << "phone pairing auth tests passed\n";
 }
