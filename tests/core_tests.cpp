@@ -18,7 +18,7 @@ int main() {
  pkgmaster::Job f; f.state=pkgmaster::JobState::Failed; f.received_bytes=12; f.error="network"; auto fid=q.add(f); assert(q.retry(fid)); assert(q.get(fid)->received_bytes==0&&q.get(fid)->error.empty()&&q.get(fid)->state==pkgmaster::JobState::Queued);
  std::string reason; assert(pkgmaster::is_allowed_download_url("https://example.com/file.pkg",reason)); assert(!pkgmaster::is_allowed_download_url("file:///etc/passwd",reason)); assert(!pkgmaster::is_allowed_download_url("http://127.0.0.1/file.pkg",reason));
  assert(pkgmaster::can_transition(pkgmaster::JobState::Queued,pkgmaster::JobState::Resolving)); assert(!pkgmaster::can_transition(pkgmaster::JobState::Completed,pkgmaster::JobState::Downloading));
- const auto huge_plan=pkgmaster::make_range_plan(std::numeric_limits<std::uint64_t>::max(),4,1024*1024); assert(huge_plan.parts.size()==4); assert(huge_plan.parts.front().first==0&&huge_plan.parts.back().last==UINT64_MAX-1);
+ const auto huge_plan=pkgmaster::make_range_plan(std::numeric_limits<std::uint64_t>::max(),4,1024*1024); assert(huge_plan.parts.size()==4); assert(huge_plan.parts.front().first==0&&huge_plan.parts.back().last==std::numeric_limits<std::uint64_t>::max()-1);
  const auto plan=pkgmaster::make_range_plan(10*1024*1024,4,1024*1024); assert(plan.parts.size()==4&&plan.parts.front().first==0&&plan.parts.back().last==plan.total_bytes-1);
  for(std::size_t i=1;i<plan.parts.size();++i) assert(plan.parts[i-1].last+1==plan.parts[i].first);
  std::uint64_t cr_first=9,cr_last=9,cr_total=9;
