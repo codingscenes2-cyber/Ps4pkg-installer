@@ -30,8 +30,7 @@ int main() {
  // Persistence round-trip, including tabs/newlines and non-ASCII byte sequences.
  pkgmaster::Job saved; saved.id=41; saved.source_url="https://host/file.pkg?x=1"; saved.file_name="game\tname.pkg";
  saved.local_path="/data/pkgmaster/game.pkg"; saved.expected_bytes=1000; saved.received_bytes=375;
- saved.state=pkgmaster::JobState::Paused; saved.error="temporary
-network issue";
+ saved.state=pkgmaster::JobState::Paused; saved.error="temporary\nnetwork issue";
  const std::string store_path="pkgmaster-test-queue.db";
  assert(pkgmaster::QueueStore::save(store_path,{saved},e));
  std::vector<pkgmaster::Job> restored;
