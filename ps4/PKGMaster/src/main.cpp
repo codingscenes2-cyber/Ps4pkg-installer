@@ -419,12 +419,10 @@ int main() {
                         }
                         page = 2;
                     } else if (page == 2 && !packages.empty()) {
-                        if (!metadataError.empty() || selectedMetadata.title_id.empty()) {
-                            status = "CANNOT INSTALL - VALID PARAM SFO TITLE ID REQUIRED";
-                        } else {
-                            status = "REVIEW PACKAGE DETAILS BEFORE INSTALLING";
-                            page = 3;
-                        }
+                        status = metadataError.empty()
+                            ? "REVIEW PACKAGE DETAILS BEFORE INSTALLING"
+                            : "SFO UNAVAILABLE - PS4 PACKAGE SERVICE WILL VALIDATE";
+                        page = 3;
                     } else if (page == 3 && !packages.empty()) {
                         installTaskId = -1;
                         installTransferred = 0;
