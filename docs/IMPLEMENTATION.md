@@ -6,6 +6,13 @@ QueueStore writes a versioned, tab-delimited snapshot. String fields are hex enc
 
 This stores queue metadata only. It does not yet checkpoint partial download files, ETags, Last-Modified values, per-range completion maps, or fsync the containing directory. Those are required before claiming crash-safe download resume. Callers must choose a writable private data path and serialize concurrent save operations.
 
+
+## Resume manifest milestone
+
+A version-1 resume manifest now records the source URL, entity tag, total object length and a contiguous partition of byte ranges with per-range completion flags. The loader parses transactionally and rejects malformed numbers, gaps, overlaps, out-of-bounds ranges and excessive chunk counts. Saving uses a sibling temporary file followed by rename.
+
+This is deliberately only a validated checkpoint format. The HTTP downloader does not yet populate it, write independent ranges into a shared partial file, revalidate ETags with If-Range, or recover incomplete chunks after process restart. Do not present resume as operational until those pieces and end-to-end interruption tests exist. Manifest files should be treated as untrusted input and kept in the app's private data directory.
+
 ## Native installer boundary
 
 The project intentionally defines InstallerBridge as an adapter. The current implementation returns Unsupported. Before implementing it, identify a documented and firmware-compatible handoff mechanism, confirm its required privileges/payload state, and test the acceptance/error callbacks on a real console. Do not call private or guessed symbols and do not claim a queue entry is installing without authoritative status.
