@@ -1,16 +1,21 @@
 # PKGMaster PS4 development build
 
-This is the first visible PS4-native UI milestone. It is a development shell, not the finished PKG manager.
+This is an early PS4-native development build. It has a visible menu and a first USB package-library screen, but it is not yet a complete installer.
 
 ## Current native UI
 
-- 1920x1080 framebuffer UI rendered through the OpenOrbis sample Scene2D / VideoOut path.
+- 1920x1080 framebuffer UI rendered through the OpenOrbis Scene2D / VideoOut path.
 - DualShock input through ScePad and UserService.
-- D-pad Up/Down moves the selection.
-- Cross selects a section and displays its current implementation status.
-- Circle resets the status line.
+- D-pad Up/Down moves through the main menu or package list.
+- Cross opens Package Library and marks a selected package.
+- Circle returns to the main menu.
+- Triangle rescans USB storage from the package-library screen.
 
-The four menu sections are placeholders. Package scanning, USB/HDD browsing, download management, phone transfer, settings persistence and native installer handoff are not connected yet.
+## Current package-library slice
+
+The Package Library screen scans the root of the standard PS4 USB mount points: /mnt/usb0 through /mnt/usb3. It lists up to 64 regular files with a .pkg extension and displays their names and sizes.
+
+This first scanner is non-recursive. It does not yet scan the internal HDD, parse package metadata, queue downloads, or install packages. Selecting a PKG only reports its name; native installer handoff is not connected.
 
 ## Build and package validation
 
@@ -20,8 +25,6 @@ Before uploading the artifact, CI:
 - Parses the PKG entry table.
 - Extracts eboot.bin from the package filesystem.
 - Extracts and checks the PARAM.SFO and ICON0_PNG metadata entries.
-
-The latest successful workflow artifact is linked from PR #33.
 
 ## Build locally
 
@@ -39,10 +42,12 @@ The resulting package is named:
 A successful CI build proves that the OpenOrbis cross-compile and package creation pipeline works. It does **not** prove that the app installs or runs on every firmware or GoldHEN version. Firmware 14.00 and the user's console setup still require hardware testing.
 
 For this milestone, verify:
-1. The package appears in the GoldHEN package installer and installs.
+1. The package installs through GoldHEN's package installer.
 2. The app launches to the PKGMaster menu.
-3. D-pad Up/Down moves the highlight.
-4. Cross changes the status message; Circle resets it.
-5. The PS button can return to the system menu and close the app.
+3. D-pad Up/Down moves the menu highlight.
+4. Cross opens Package Library.
+5. With a USB drive containing PKG files attached, the library lists those files; Triangle rescans.
+6. Circle returns to the main menu.
+7. Selecting a PKG does not install it yet; it only displays a status message.
 
-If video initialization fails, the app currently stays alive without a visible menu; report that separately from an installation failure.
+If video initialization or USB directory access fails, report that separately from a package installation failure.
