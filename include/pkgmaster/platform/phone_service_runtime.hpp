@@ -9,6 +9,7 @@
 #include <vector>
 
 namespace pkgmaster {
+class PhoneApiController;
 // Owns the complete phone-service lifetime. The caller supplies a verified
 // private LAN interface and app-owned storage paths; no listener starts by
 // default. stop() always stops the socket worker before destroying its handler.
