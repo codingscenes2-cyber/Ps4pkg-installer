@@ -16,8 +16,8 @@ static void put32(std::vector<std::uint8_t>& b, std::size_t p, std::uint32_t v) 
     for(int i=0;i<4;++i)b[p+i]=static_cast<std::uint8_t>(v>>(8*i));
 }
 static std::vector<std::uint8_t> make_sfo() {
-    const std::string key="TITLE\0TITLE_ID\0";
-    const std::string title="Scanner Test\0", id="CUSA12345\0";
+    const std::string key("TITLE\0TITLE_ID\0",15);
+    const std::string title("Scanner Test\0",13), id("CUSA12345\0",10);
     const std::size_t key_off=20+2*16, data_off=key_off+key.size();
     std::vector<std::uint8_t> b(data_off+title.size()+id.size());
     put32(b,0,0x46535000); put32(b,4,20); put32(b,8,static_cast<std::uint32_t>(data_off));
