@@ -254,7 +254,7 @@ bool PhoneApiController::handle(const PhoneHttpRequest& request, PhoneHttpRespon
         std::error_code exists_error;
         const bool index_exists = std::filesystem::exists(library_index_path_, exists_error);
         if (exists_error || (index_exists && !PackageLibraryIndexStore::load(library_index_path_, packages, error))) {
-            response = json_response(500, "{\\"error\\":\\"library_index_unavailable\\"}");
+            response = json_response(500, "{\"error\":\"library_index_unavailable\"}");
             return true;
         }
         std::ostringstream body;
@@ -262,11 +262,11 @@ bool PhoneApiController::handle(const PhoneHttpRequest& request, PhoneHttpRespon
         for (std::size_t i = 0; i < packages.size(); ++i) {
             if (i) body << ',';
             const auto& item = packages[i];
-            body << "{\\"title\\":\\"" << json_escape(item.metadata.title)
-                 << "\\",\\"title_id\\":\\"" << json_escape(item.metadata.title_id)
-                 << "\\",\\"app_version\\":\\"" << json_escape(item.metadata.app_version)
-                 << "\\",\\"category\\":\\"" << json_escape(item.metadata.category)
-                 << "\\",\\"system_version\\":\\"" << json_escape(item.metadata.system_version) << "\\"}";
+            body << "{\"title\":\"" << json_escape(item.metadata.title)
+                 << "\",\"title_id\":\"" << json_escape(item.metadata.title_id)
+                 << "\",\"app_version\":\"" << json_escape(item.metadata.app_version)
+                 << "\",\"category\":\"" << json_escape(item.metadata.category)
+                 << "\",\"system_version\":\"" << json_escape(item.metadata.system_version) << "\"}";
         }
         body << "]}";
         response = json_response(200, body.str());
@@ -276,9 +276,9 @@ bool PhoneApiController::handle(const PhoneHttpRequest& request, PhoneHttpRespon
     if (request.method == "POST" && path.compare(0, install_prefix.size(), install_prefix) == 0) {
         std::uint64_t install_id = 0;
         if (!parse_id(path.substr(install_prefix.size()), install_id))
-            response = json_response(400, "{\\"error\\":\\"invalid_install_id\\"}");
+            response = json_response(400, "{\"error\":\"invalid_install_id\"}");
         else
-            response = json_response(501, "{\\"error\\":\\"native_install_handoff_not_available\\"}");
+            response = json_response(501, "{\"error\":\"native_install_handoff_not_available\"}");
         return true;
     }
     response = json_response(404, "{\"error\":\"endpoint_not_found\"}");
