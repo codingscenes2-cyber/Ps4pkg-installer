@@ -1,5 +1,6 @@
 #include "pkgmaster/package/library_scanner.hpp"
 #include <cassert>
+#include <algorithm>
 #include <cstdint>
 #include <filesystem>
 #include <fstream>
@@ -20,8 +21,8 @@ static std::vector<std::uint8_t> make_sfo() {
     const std::string title("Scanner Test\0",13), id("CUSA12345\0",10);
     const std::size_t key_off=20+2*16, data_off=key_off+key.size();
     std::vector<std::uint8_t> b(data_off+title.size()+id.size());
-    put32(b,0,0x46535000); put32(b,4,20); put32(b,8,static_cast<std::uint32_t>(data_off));
-    put32(b,12,2); put16(b,20,0); put16(b,22,0x0204); put32(b,24,title.size()); put32(b,28,title.size()); put32(b,32,0);
+    put32(b,0,0x46535000); put32(b,4,0x00000101); put32(b,8,static_cast<std::uint32_t>(key_off));
+    put32(b,12,static_cast<std::uint32_t>(data_off)); put32(b,16,2); put16(b,20,0); put16(b,22,0x0204); put32(b,24,title.size()); put32(b,28,title.size()); put32(b,32,0);
     put16(b,36,6); put16(b,38,0x0204); put32(b,40,id.size()); put32(b,44,id.size()); put32(b,48,title.size());
     std::copy(key.begin(),key.end(),b.begin()+key_off);
     std::copy(title.begin(),title.end(),b.begin()+data_off);
