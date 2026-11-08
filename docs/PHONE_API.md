@@ -41,3 +41,8 @@ The portable core now contains `PhonePairingAuth`, an in-memory one-time pairing
 
 
 The implementation now provides `generate_secure_token_hex` and `PhonePairingAuth::arm_random`. On Windows it uses the system-preferred BCrypt random provider; on POSIX/Orbis targets it reads exactly 32 bytes from `/dev/urandom`, handling interrupted reads. Failure is reported rather than falling back to a predictable generator. The returned pairing secret is 64 lowercase hexadecimal characters (256 bits); the session token is separately generated and remains internal to the auth object until exchange.
+
+
+## HTTP request parser
+
+The portable phone-service core now includes a strict single-request HTTP/1.1 parser. It accepts only GET/POST origin-form targets, requires Host, normalizes header names, rejects duplicate headers, folded lines, transfer-encoding, unsupported methods/versions, malformed lengths, oversized requests/bodies and trailing/pipelined bytes. Default limits are 128 KiB per request, 16 KiB of headers, 64 KiB of body and 32 headers. This parser consumes one complete in-memory request; a future socket server must enforce read timeouts, connection limits, peer/LAN binding, route authorization, response framing, and rate limiting.
