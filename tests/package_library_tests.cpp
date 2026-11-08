@@ -1,4 +1,5 @@
 #include "pkgmaster/core/package_library.hpp"
+#include "pkgmaster/core/sha256.hpp"
 #include <cassert>
 #include <filesystem>
 #include <fstream>
