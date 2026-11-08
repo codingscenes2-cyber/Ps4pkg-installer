@@ -90,3 +90,8 @@ Callers may optionally provide a trusted 64-character hexadecimal SHA-256 digest
 ## Safe archive extraction
 
 An optional libarchive-backed extractor now handles supported archive formats when libarchive is present in the build. It extracts into a new staging directory, rejects absolute paths, parent/current/empty path components, backslashes, drive-like paths, symlinks, hardlinks and special files, and enforces file-count, per-file, total-size and expansion-ratio limits. Passwords are supplied explicitly by the caller; no password guessing is performed. PKG detection is extension-based after extraction and is not package authenticity validation. If libarchive is absent, the feature reports Unsupported. The host CI installs libarchive; a compatible PS4 port and real-console extraction test are still required before enabling this capability on PS4. Multi-volume archive behavior is dependent on the linked libarchive build and has not been validated.
+
+
+## Parallel download telemetry
+
+Parallel range downloads now emit the same DownloadMetrics callback used by the single-stream transport. The tracker receives aggregate completed bytes across all workers, reports percent and smoothed throughput, and exposes ETA only after a positive speed sample exists. The callback is serialized so UI consumers do not need to handle concurrent invocations. A configured bandwidth cap remains an approximate per-worker allocation rather than a strict aggregate token bucket.
