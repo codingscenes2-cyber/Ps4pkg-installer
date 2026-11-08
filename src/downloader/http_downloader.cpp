@@ -152,7 +152,7 @@ HttpDownloadResult download_http_file(const HttpDownloadOptions& options) {
         return result;
     }
     std::unique_ptr<CURL, decltype(&curl_easy_cleanup)> curl(raw, &curl_easy_cleanup);
-    TransferContext context{file, &options, &result, false, false};
+    TransferContext context{file, &options, &result, false, false, {}};
     curl_easy_setopt(curl.get(), CURLOPT_URL, options.url.c_str());
 #if LIBCURL_VERSION_NUM >= 0x075500
     curl_easy_setopt(curl.get(), CURLOPT_PROTOCOLS_STR, "http,https");
