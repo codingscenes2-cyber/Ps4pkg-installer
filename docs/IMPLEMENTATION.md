@@ -90,3 +90,8 @@ Callers may optionally provide a trusted 64-character hexadecimal SHA-256 digest
 ## Safe archive extraction
 
 An optional libarchive-backed extractor now handles supported archive formats when libarchive is present in the build. It extracts into a new staging directory, rejects absolute paths, parent/current/empty path components, backslashes, drive-like paths, symlinks, hardlinks and special files, and enforces file-count, per-file, total-size and expansion-ratio limits. Passwords are supplied explicitly by the caller; no password guessing is performed. PKG detection is extension-based after extraction and is not package authenticity validation. If libarchive is absent, the feature reports Unsupported. The host CI installs libarchive; a compatible PS4 port and real-console extraction test are still required before enabling this capability on PS4. Multi-volume archive behavior is dependent on the linked libarchive build and has not been validated.
+
+
+## Package library catalog
+
+A persistent package catalog now indexes regular, non-symlink .pkg files by canonical path, file name, size and locally computed SHA-256, with an optional validated source URL. The versioned index is hex-encoded and transactionally loaded; writes use a temporary sibling file and rename. The library supports search, directory scanning with a caller-supplied file limit, and removing catalog records without deleting package files. The index does not parse PS4 content IDs, SFO metadata, firmware requirements or signatures yet; those require a validated PKG parser. The catalog is a portable core component and has not been connected to a PS4 UI.
