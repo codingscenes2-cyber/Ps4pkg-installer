@@ -137,7 +137,7 @@ bool mark_resume_chunk_complete(ResumeManifest& manifest,
         error = "Resume chunk index is out of range.";
         return false;
     }
-    manifest.chunks[chunk_index].complete = true;
+    manifest.chunks[chunk_index].complete = true;\n    manifest.chunks[chunk_index].checksum = checksum;\n    manifest.chunks[chunk_index].checksum_valid = checksum_valid;
     error.clear();
     return true;
 }
@@ -255,7 +255,7 @@ bool load_resume_manifest(const std::string& path,
             error = "Invalid resume chunk record.";
             return false;
         }
-        parsed.chunks.push_back({{first, last}, complete == 1});
+        ResumeChunk chunk;\n        chunk.range = {first, last};\n        chunk.complete = complete == 1;\n        if (version_two && fields[3] != "-") {\n            chunk.checksum = static_cast<std::uint32_t>(checksum);\n            chunk.checksum_valid = true;\n        }\n        parsed.chunks.push_back(chunk);
     }
 
     if (input.bad()) {
