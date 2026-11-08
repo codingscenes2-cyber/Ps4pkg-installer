@@ -14,6 +14,6 @@ int main() {
     assert(stored && stored->state == pkgmaster::JobState::Failed);
     assert(!stored->error.empty());
     assert(!coordinator.resume(id));
-    assert(coordinator.cancel(999999));
+    assert(!coordinator.cancel(999999));
     return 0;
 }
