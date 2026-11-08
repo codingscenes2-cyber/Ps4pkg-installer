@@ -9,6 +9,8 @@ add_library(pkgmaster_core
     src/core/job.cpp
     src/core/queue.cpp
     src/core/url_policy.cpp
+    src/core/state_transition.cpp
+    src/downloader/range_plan.cpp
     src/platform/installer_bridge.cpp
 )
 target_include_directories(pkgmaster_core PUBLIC include)
