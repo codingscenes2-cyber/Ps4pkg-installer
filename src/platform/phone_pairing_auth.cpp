@@ -79,11 +79,12 @@ bool PhonePairingAuth::exchange(const std::string& supplied_secret,
     wipe(pairing_secret_);
     pairing_expires_ms_ = 0;
     issued_session_token = session_token_;
+    session_active_ = true;
     return true;
 }
 bool PhonePairingAuth::authenticate(const std::string& supplied_session_token,
                                     std::uint64_t now_ms) const {
-    if (!is_token(supplied_session_token) || session_token_.empty() || now_ms >= session_expires_ms_) return false;
+    if (!is_token(supplied_session_token) || !session_active_ || session_token_.empty() || now_ms >= session_expires_ms_) return false;
     return constant_time_equal(session_token_, supplied_session_token);
 }
 void PhonePairingAuth::revoke() {
@@ -91,5 +92,6 @@ void PhonePairingAuth::revoke() {
     wipe(session_token_);
     pairing_expires_ms_ = 0;
     session_expires_ms_ = 0;
+    session_active_ = false;
 }
 }
