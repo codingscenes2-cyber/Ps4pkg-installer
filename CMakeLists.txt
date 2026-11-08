@@ -6,7 +6,7 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 find_package(CURL QUIET)
 find_package(Threads REQUIRED)
 add_library(pkgmaster_core
- src/core/job.cpp src/core/queue.cpp src/core/queue_store.cpp src/core/url_policy.cpp src/core/state_transition.cpp
+ src/core/job.cpp src/core/queue.cpp src/core/queue_store.cpp src/core/url_policy.cpp src/core/state_transition.cpp src/core/sha256.cpp
  src/downloader/range_plan.cpp src/downloader/range_file_assembler.cpp src/downloader/resume_manifest.cpp src/downloader/http_downloader.cpp src/downloader/http_probe.cpp src/downloader/parallel_range_downloader.cpp src/downloader/download_coordinator.cpp src/platform/installer_bridge.cpp src/platform/capabilities.cpp)
 target_include_directories(pkgmaster_core PUBLIC include)
 target_link_libraries(pkgmaster_core PUBLIC Threads::Threads)
@@ -45,6 +45,9 @@ if(PKGMASTER_BUILD_TESTS)
  add_executable(pkgmaster_download_coordinator_tests tests/download_coordinator_tests.cpp)
  target_link_libraries(pkgmaster_download_coordinator_tests PRIVATE pkgmaster_core)
  add_test(NAME pkgmaster_download_coordinator_tests COMMAND pkgmaster_download_coordinator_tests)
+ add_executable(pkgmaster_sha256_tests tests/sha256_tests.cpp)
+ target_link_libraries(pkgmaster_sha256_tests PRIVATE pkgmaster_core)
+ add_test(NAME pkgmaster_sha256_tests COMMAND pkgmaster_sha256_tests)
  add_executable(pkgmaster_resume_tests tests/resume_manifest_tests.cpp)
  target_link_libraries(pkgmaster_resume_tests PRIVATE pkgmaster_core)
  add_test(NAME pkgmaster_resume_tests COMMAND pkgmaster_resume_tests)

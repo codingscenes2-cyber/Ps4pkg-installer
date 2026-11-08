@@ -19,5 +19,9 @@ int main() {
     options.transfer.maximum_bytes_per_second = std::numeric_limits<std::uint64_t>::max();
     auto bad_limit = pkgmaster::download_http_ranges(options);
     assert(bad_limit.status == pkgmaster::DownloadStatus::Failed);
+    options.transfer.maximum_bytes_per_second = 0;
+    options.transfer.expected_sha256 = "bad";
+    auto bad_digest = pkgmaster::download_http_ranges(options);
+    assert(bad_digest.status == pkgmaster::DownloadStatus::Failed);
     return 0;
 }

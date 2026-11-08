@@ -18,6 +18,10 @@ int main() {
     auto cancelled_result = pkgmaster::download_http_file(options);
     assert(cancelled_result.status == pkgmaster::DownloadStatus::Cancelled ||
            cancelled_result.status == pkgmaster::DownloadStatus::Unsupported);
+    options.cancel = nullptr;
+    options.expected_sha256 = "invalid";
+    auto bad_digest = pkgmaster::download_http_file(options);
+    assert(bad_digest.status == pkgmaster::DownloadStatus::Failed);
     std::remove("must-not-be-created.pkg");
     std::remove("must-not-be-created.pkg.part");
     return 0;

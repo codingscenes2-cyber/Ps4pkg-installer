@@ -1,6 +1,9 @@
 #include "pkgmaster/downloader/http_downloader.hpp"
 #include "pkgmaster/core/url_policy.hpp"
+#include "pkgmaster/core/sha256.hpp"
 #include <cstdio>
+#include <algorithm>
+#include <cctype>
 #include <cstring>
 #include <fstream>
 #include <limits>
@@ -112,7 +115,8 @@ HttpDownloadResult download_http_file(const HttpDownloadOptions& options) {
     }
     if (!options.maximum_bytes || options.connect_timeout_ms <= 0 ||
         options.total_timeout_seconds < 0 ||
-        options.maximum_bytes_per_second > static_cast<std::uint64_t>(std::numeric_limits<std::int64_t>::max())) {
+        options.maximum_bytes_per_second > static_cast<std::uint64_t>(std::numeric_limits<std::int64_t>::max()) ||
+        (!options.expected_sha256.empty() && !is_sha256_hex(options.expected_sha256))) {
         result.error = "Invalid download limits or timeout settings.";
         return result;
     }
@@ -201,11 +205,22 @@ HttpDownloadResult download_http_file(const HttpDownloadOptions& options) {
         result.error = "Downloaded byte count does not match Content-Length.";
     } else if (result.received_bytes == 0) {
         result.error = "Server returned an empty response body.";
-    } else if (std::rename(temporary.c_str(), options.destination_path.c_str()) == 0) {
-        result.status = DownloadStatus::Completed;
-        return result;
     } else {
-        result.error = "Could not move completed download into its destination.";
+        if (!options.expected_sha256.empty()) {
+            std::string actual, hash_error;
+            if (!sha256_file(temporary, actual, hash_error)) result.error = hash_error;
+            else {
+                std::string expected = options.expected_sha256;
+                std::transform(expected.begin(), expected.end(), expected.begin(),
+                    [](unsigned char c){ return static_cast<char>(std::tolower(c)); });
+                if (actual != expected) result.error = "Downloaded file SHA-256 does not match the trusted expected digest.";
+            }
+        }
+        if (result.error.empty() && std::rename(temporary.c_str(), options.destination_path.c_str()) == 0) {
+            result.status = DownloadStatus::Completed;
+            return result;
+        }
+        if (result.error.empty()) result.error = "Could not move completed download into its destination.";
     }
     std::remove(temporary.c_str());
     if (result.status != DownloadStatus::Cancelled)
