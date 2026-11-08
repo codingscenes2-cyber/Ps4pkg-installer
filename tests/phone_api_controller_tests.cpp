@@ -55,6 +55,10 @@ int main() {
         item.metadata.title_id = "TEST00001";
         item.metadata.app_version = "01.00";
         item.metadata.category = "gd";
+        item.metadata.system_version = "07000000";
+        item.package_path = "/titles/test";
+        item.param_sfo_path = "/titles/test/sce_sys/param.sfo";
+        item.param_sfo_bytes = 256;
         std::string save_error;
         assert(pkgmaster::PackageLibraryIndexStore::save((root / "library.idx").string(), {item}, save_error));
         request.method = "GET";
