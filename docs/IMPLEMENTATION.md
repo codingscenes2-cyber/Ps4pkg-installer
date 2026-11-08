@@ -10,7 +10,7 @@ This stores queue metadata only. It does not yet checkpoint partial download fil
 
 ## Range file assembly
 
-The range assembler creates a bounded `.part` staging file from a validated contiguous range plan. It accepts out-of-order chunk writes, checks each chunk's exact assigned length, serializes file access, flushes before marking a chunk complete, and publishes only after every range is present. It refuses to truncate an existing staging file so a future recovery implementation can inspect it.
+The range assembler creates a bounded `.part` staging file from a validated contiguous range plan. It accepts out-of-order chunk writes, checks each chunk's exact assigned length, serializes file access, flushes before marking a chunk complete, and publishes only after every range is present. It refuses to truncate an existing staging file so a future recovery implementation can inspect it. The current flush is a C++ stream flush, not an fsync or power-loss durability guarantee.
 
 This is a storage primitive, not a parallel HTTP downloader. It currently has no API to reopen and reconcile an existing partial file with a resume manifest, and chunk writes are serialized through one file stream. Do not claim interrupted downloads can yet be resumed automatically.
 
