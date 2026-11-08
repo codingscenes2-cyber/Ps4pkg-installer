@@ -38,6 +38,22 @@ bool validate_resume_manifest(const ResumeManifest& m,std::string& error){
  if(cursor!=m.total_bytes){error="Resume chunks do not cover the complete remote object.";return false;}
  error.clear();return true;
 }
+bool mark_resume_chunk_complete(ResumeManifest& m,std::size_t index,std::string& error){
+ if(!validate_resume_manifest(m,error))return false;
+ if(index>=m.chunks.size()){error="Resume chunk index is out of range.";return false;}
+ m.chunks[index].complete=true;error.clear();return true;
+}
+std::vector<ByteRange> pending_resume_ranges(const ResumeManifest& m){
+ std::vector<ByteRange> ranges;std::string error;
+ if(!validate_resume_manifest(m,error))return ranges;
+ for(const auto& c:m.chunks)if(!c.complete)ranges.push_back(c.range);
+ return ranges;
+}
+bool resume_identity_matches(const ResumeManifest& m,const std::string& url,const std::string& etag,std::uint64_t total){
+ std::string error;
+ return validate_resume_manifest(m,error)&&!etag.empty()&&etag.rfind("W/",0)!=0&&
+        m.source_url==url&&m.entity_tag==etag&&m.total_bytes==total;
+}
 bool save_resume_manifest(const std::string& path,const ResumeManifest& m,std::string& error){
  if(path.empty()){error="Resume manifest path is empty.";return false;}
  if(!validate_resume_manifest(m,error))return false;
