@@ -131,7 +131,7 @@ PhoneApiController::~PhoneApiController() {
         active = active_id_;
         pending_.clear();
     }
-    if (active) downloads_.cancel(active);
+    if (active && !downloads_.pause(active)) downloads_.cancel(active);
     condition_.notify_all();
     if (worker_.joinable()) worker_.join();
 }
