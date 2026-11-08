@@ -53,3 +53,8 @@ A package's SFO minimum system version, the app's target firmware and GoldHEN pa
 ## HTTP resource capability probe
 
 The HTTP probe performs a HEAD request and then a one-byte GET with Range: bytes=0-0. It accepts range support only when the server returns HTTP 206, an exact Content-Range for the discovered object length, and exactly one body byte. Redirects are rejected rather than followed. The probe reports resumability only when a syntactically strong ETag is available; when present, If-Match is sent on the validation request to prevent silently probing a changed object. This is capability discovery only: it does not yet download parallel ranges, persist checkpoints, or resume transfers.
+
+
+## Parallel HTTP range transport
+
+A bounded worker-pool transport now probes the object before starting and requires a validated byte-range response plus a strong ETag. It partitions the object into at most eight ranges, sends If-Match on every request, rejects redirects, validates HTTP 206 and exact Content-Range/body length, requires the response ETag to match the probed identity, and writes each validated part through RangeFileAssembler. Cancellation is cooperative between requests only: in-flight curl requests do not yet have a progress abort callback. Failures/cancellation leave the private .part staging file in place, but no manifest is yet connected to this transport, so automatic restart recovery is not available and a later run will refuse to overwrite that staging file. The current worker pool uses separate libcurl easy handles and threads; it is not a libcurl multi event loop. No live-origin integration test or PS4 build has been performed.
