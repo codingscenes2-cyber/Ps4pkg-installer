@@ -1,6 +1,7 @@
 #pragma once
 #include "pkgmaster/platform/phone_http_parser.hpp"
 #include "pkgmaster/platform/phone_pairing_auth.hpp"
+#include "pkgmaster/platform/phone_pairing_rate_limit.hpp"
 #include <atomic>
 #include <cstdint>
 #include <functional>
@@ -45,6 +46,7 @@ private:
     std::uint16_t port_{};
     std::string expected_host_;
     PhonePairingAuth auth_;
+    PhonePairingRateLimiter pairing_limiter_;
     PhoneApiHandler handler_;
 };
 }
