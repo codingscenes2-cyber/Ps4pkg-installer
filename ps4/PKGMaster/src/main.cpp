@@ -2,12 +2,14 @@
 #include <cstdint>
 #include <sstream>
 #include <string>
+#include <vector>
 
 #include <orbis/Pad.h>
 #include <orbis/UserService.h>
 
 #include "graphics.h"
 #include "log.h"
+#include "pkg_scanner.hpp"
 
 static constexpr int kWidth = 1920;
 static constexpr int kHeight = 1080;
@@ -43,7 +45,7 @@ static const Glyph kFont[] = {
     {'/',{1,2,2,4,8,8,16}}, {'.',{0,0,0,0,0,12,12}},
     {'>',{16,8,4,2,4,8,16}}, {'<',{1,2,4,8,4,2,1}},
     {'!',{4,4,4,4,4,0,4}}, {'?',{14,17,1,2,4,0,4}},
-    {' ',{0,0,0,0,0,0,0}}
+    {'_',{0,0,0,0,0,0,31}}, {' ',{0,0,0,0,0,0,0}}
 };
 
 static const Glyph* findGlyph(char c) {
@@ -86,7 +88,7 @@ static void drawInterface(Scene2D* scene, int selected, const std::string& statu
     scene->DrawRectangle(110, 206, 1700, 2, panelAlt);
 
     drawText(scene, 112, 42, "PKGMASTER", cyan, 9);
-    drawText(scene, 1160, 68, "PS4 BOOT TEST BUILD", muted, 3);
+    drawText(scene, 1160, 68, "PS4 DEVELOPMENT BUILD", muted, 3);
     drawText(scene, 116, 166, "OPENORBIS NATIVE UI FOUNDATION", white, 3);
 
     scene->DrawRectangle(110, 235, 1700, 620, panel);
@@ -105,18 +107,84 @@ static void drawInterface(Scene2D* scene, int selected, const std::string& statu
         scene->DrawRectangle(145, y, 1630, 94, active ? cyan : panelAlt);
         drawText(scene, 195, y + 27, menuItems[i],
                  active ? selectedText : white, 5);
-        if (active) {
-            drawText(scene, 1570, y + 34, "SELECTED", selectedText, 2);
-        }
+        if (active) drawText(scene, 1570, y + 34, "SELECTED", selectedText, 2);
     }
 
     scene->DrawRectangle(110, 885, 1700, 105, panel);
-    drawText(scene, 150, 908, status.c_str(), white, 3);
+    const std::string shortStatus = status.substr(0, 86);
+    drawText(scene, 150, 908, shortStatus.c_str(), white, 3);
     drawText(scene, 110, 1015,
              controllerReady ? "D-PAD NAVIGATE   X SELECT   O BACK"
                               : "CONTROLLER NOT READY - CHECK USB OR BLUETOOTH",
              muted, 3);
-    drawText(scene, 110, 1055, "NATIVE INSTALLER AND STORAGE FEATURES NOT ENABLED",
+    drawText(scene, 110, 1055, "USB PACKAGE SCAN AVAILABLE IN PACKAGE LIBRARY",
+             muted, 2);
+}
+
+static void drawLibrary(Scene2D* scene, const std::vector<PackageEntry>& packages,
+                        int selected, const std::string& status, bool controllerReady) {
+    const Color background{12, 18, 30};
+    const Color panel{22, 32, 49};
+    const Color panelAlt{28, 42, 62};
+    const Color cyan{56, 218, 205};
+    const Color white{235, 242, 250};
+    const Color muted{139, 158, 180};
+    const Color selectedText{8, 20, 30};
+
+    scene->FrameBufferFill(background);
+    scene->DrawRectangle(0, 0, kWidth, 132, panel);
+    scene->DrawRectangle(0, 126, kWidth, 7, cyan);
+    drawText(scene, 112, 42, "PKGMASTER", cyan, 9);
+    drawText(scene, 1160, 68, "USB PACKAGE LIBRARY", muted, 3);
+    drawText(scene, 116, 166, "SCANNED ROOTS: USB0 USB1 USB2 USB3", white, 3);
+
+    scene->DrawRectangle(110, 235, 1700, 620, panel);
+    char countText[64];
+    std::snprintf(countText, sizeof(countText), "FOUND %u PKG FILES",
+                  static_cast<unsigned>(packages.size()));
+    drawText(scene, 155, 270, countText, muted, 3);
+
+    if (packages.empty()) {
+        drawText(scene, 210, 460, "NO PKG FILES FOUND ON USB", white, 5);
+        drawText(scene, 210, 535, "CONNECT A USB DRIVE AND PRESS TRIANGLE TO RESCAN",
+                 muted, 3);
+    } else {
+        const int first = selected > 7 ? selected - 7 : 0;
+        for (int row = 0; row < 8; ++row) {
+            const int index = first + row;
+            if (index >= static_cast<int>(packages.size())) break;
+
+            const int y = 315 + row * 65;
+            const bool active = index == selected;
+            scene->DrawRectangle(145, y, 1630, 54, active ? cyan : panelAlt);
+
+            std::string displayName = packages[index].name.substr(0, 40);
+            drawText(scene, 175, y + 16, displayName.c_str(),
+                     active ? selectedText : white, 3);
+
+            char sizeText[32];
+            if (packages[index].sizeBytes >= 1024ULL * 1024ULL) {
+                std::snprintf(sizeText, sizeof(sizeText), "%llu MB",
+                    static_cast<unsigned long long>(
+                        packages[index].sizeBytes / (1024ULL * 1024ULL)));
+            } else {
+                std::snprintf(sizeText, sizeof(sizeText), "%llu KB",
+                    static_cast<unsigned long long>(
+                        packages[index].sizeBytes / 1024ULL));
+            }
+            drawText(scene, 1510, y + 19, sizeText,
+                     active ? selectedText : muted, 2);
+        }
+    }
+
+    scene->DrawRectangle(110, 885, 1700, 105, panel);
+    const std::string shortStatus = status.substr(0, 86);
+    drawText(scene, 150, 908, shortStatus.c_str(), white, 3);
+    drawText(scene, 110, 1015,
+             controllerReady ? "D-PAD SELECT   X MARK PKG   O BACK   TRIANGLE RESCAN"
+                              : "CONTROLLER NOT READY",
+             muted, 2);
+    drawText(scene, 110, 1055, "INSTALL HANDOFF IS NOT ENABLED IN THIS BUILD",
              muted, 2);
 }
 
@@ -124,8 +192,8 @@ int main() {
     setvbuf(stdout, nullptr, _IONBF, 0);
     DEBUGLOG << "Starting PKGMaster native UI";
 
-    // Keep the graphics context alive for the full application process. The
-    // upstream sample declares a destructor but does not provide its body.
+    // The upstream sample declares a destructor but does not provide its body.
+    // Keep the graphics context alive for the full application process.
     Scene2D* scene = new Scene2D(kWidth, kHeight, kDepth);
     if (!scene->Init(0xC000000, 2)) {
         DEBUGLOG << "Video output initialization failed";
@@ -152,8 +220,11 @@ int main() {
     static const char* menuItems[] = {
         "PACKAGE LIBRARY", "DOWNLOAD QUEUE", "PHONE TRANSFER", "SETTINGS"
     };
+    int page = 0;
     int selected = 0;
-    std::string status = "BOOTED - SELECT A SECTION TO VIEW ITS CURRENT STATUS";
+    int packageSelected = 0;
+    std::vector<PackageEntry> packages;
+    std::string status = "BOOTED - SELECT PACKAGE LIBRARY TO SCAN USB STORAGE";
     int frameId = 0;
 
     for (;;) {
@@ -164,21 +235,51 @@ int main() {
                 previousButtons = padData.buttons;
 
                 if (pressed & ORBIS_PAD_BUTTON_UP) {
-                    selected = (selected + 3) % 4;
+                    if (page == 0) selected = (selected + 3) % 4;
+                    else if (!packages.empty()) packageSelected =
+                        (packageSelected + static_cast<int>(packages.size()) - 1) %
+                        static_cast<int>(packages.size());
                 }
                 if (pressed & ORBIS_PAD_BUTTON_DOWN) {
-                    selected = (selected + 1) % 4;
+                    if (page == 0) selected = (selected + 1) % 4;
+                    else if (!packages.empty()) packageSelected =
+                        (packageSelected + 1) % static_cast<int>(packages.size());
                 }
                 if (pressed & ORBIS_PAD_BUTTON_CROSS) {
-                    status = std::string(menuItems[selected]) + " - MODULE NOT CONNECTED YET";
+                    if (page == 0 && selected == 0) {
+                        packages = scanUsbPackages();
+                        packageSelected = 0;
+                        page = 1;
+                        status = "SCAN COMPLETE - " + std::to_string(packages.size()) +
+                                 " PKG FILES FOUND";
+                    } else if (page == 0) {
+                        status = std::string(menuItems[selected]) +
+                                 " - MODULE NOT CONNECTED YET";
+                    } else if (!packages.empty()) {
+                        status = "SELECTED: " + packages[packageSelected].name +
+                                 " - INSTALLER HANDOFF NOT ENABLED";
+                    }
                 }
                 if (pressed & ORBIS_PAD_BUTTON_CIRCLE) {
-                    status = "PKGMASTER HOME - SELECT A SECTION";
+                    if (page == 1) {
+                        page = 0;
+                        status = "RETURNED TO MAIN MENU";
+                    } else {
+                        status = "PKGMASTER HOME - SELECT A SECTION";
+                    }
+                }
+                if (pressed & ORBIS_PAD_BUTTON_TRIANGLE && page == 1) {
+                    packages = scanUsbPackages();
+                    packageSelected = 0;
+                    status = "RESCAN COMPLETE - " + std::to_string(packages.size()) +
+                             " PKG FILES FOUND";
                 }
             }
         }
 
-        drawInterface(scene, selected, status, controllerReady);
+        if (page == 0) drawInterface(scene, selected, status, controllerReady);
+        else drawLibrary(scene, packages, packageSelected, status, controllerReady);
+
         scene->SubmitFlip(frameId);
         scene->FrameWait(frameId);
         scene->FrameBufferSwap();
