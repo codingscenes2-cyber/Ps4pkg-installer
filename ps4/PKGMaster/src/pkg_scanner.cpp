@@ -3,14 +3,17 @@
 #include <algorithm>
 #include <cctype>
 #include <dirent.h>
+#include <fcntl.h>
 #include <sys/stat.h>
+#include <unistd.h>
 
 namespace {
 constexpr const char* kUsbRoots[] = {
     "/mnt/usb0",
     "/mnt/usb1",
     "/mnt/usb2",
-    "/mnt/usb3"
+    "/mnt/usb3",
+    "/data/pkg"
 };
 constexpr size_t kMaxPackages = 64;
 
@@ -43,10 +46,15 @@ std::vector<PackageEntry> scanUsbPackages() {
             }
 
             const std::string path = std::string(root) + "/" + name;
+            // Inspect an opened descriptor: path-based stat/lstat support is
+            // inconsistent in some OpenOrbis PS4 runtime environments.
+            const int fd = open(path.c_str(), O_RDONLY);
+            if (fd < 0) continue;
             struct stat info {};
-            if (stat(path.c_str(), &info) != 0 || !S_ISREG(info.st_mode) || info.st_size <= 0) {
-                continue;
-            }
+            const bool valid = fstat(fd, &info) == 0 &&
+                               S_ISREG(info.st_mode) && info.st_size > 0;
+            close(fd);
+            if (!valid) continue;
 
             packages.push_back(PackageEntry{
                 name,
