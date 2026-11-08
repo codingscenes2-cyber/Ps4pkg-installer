@@ -1,5 +1,6 @@
 #include "pkgmaster/downloader/parallel_range_downloader.hpp"
 #include <cassert>
+#include <limits>
 int main() {
     pkgmaster::ParallelRangeOptions options;
     options.transfer.url = "file:///etc/passwd";
@@ -14,5 +15,9 @@ int main() {
     options.connections = 1;
     auto bad_workers = pkgmaster::download_http_ranges(options);
     assert(bad_workers.status == pkgmaster::DownloadStatus::Failed);
+    options.connections = 4;
+    options.transfer.maximum_bytes_per_second = std::numeric_limits<std::uint64_t>::max();
+    auto bad_limit = pkgmaster::download_http_ranges(options);
+    assert(bad_limit.status == pkgmaster::DownloadStatus::Failed);
     return 0;
 }
