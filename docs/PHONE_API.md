@@ -81,3 +81,8 @@ The portable storage adapter probes only caller-configured roots, such as the in
 ## Queue persistence and startup ordering
 
 `PhoneServiceRuntime` optionally accepts an app-owned queue snapshot path. On startup it loads and validates the snapshot transactionally before creating the service; corrupt snapshots fail closed, and restoration is refused if the in-memory queue is already populated. Interrupted `Resolving`, `Downloading` and `Verifying` jobs are returned to `Queued` while preserving byte counters so the downloader's resume manifest can decide which chunks are reusable. Stale `Installing` jobs return to `ReadyToInstall` only when the recorded transfer is complete; otherwise they return to `Queued`. On shutdown, the listener is stopped and joined; the controller pauses the active transfer when its transport supports safe resume, otherwise cancels it, then joins the download worker before the queue snapshot is atomically saved. Persistence errors remain queryable through `persistence_error()`. The download worker is now started only after the listener, pairing URL and QR asset have initialized successfully, preventing queued jobs from running when service startup fails.
+
+
+## Host and Origin checks
+
+The listener records its exact configured IPv4-and-port authority and validates every parsed request's `Host` header against it before serving the UI, pairing endpoint or authenticated API. If a browser supplies an `Origin` header, it must match the same `http://address:port` origin; missing Origin remains accepted for non-browser HTTP clients, while the mandatory exact Host check still applies. This reduces DNS-rebinding and cross-origin browser request exposure but is not a substitute for TLS or a trusted isolated LAN.

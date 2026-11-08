@@ -15,6 +15,9 @@ struct PhoneHttpResponse {
     std::string body{"{}"};
 };
 using PhoneApiHandler = std::function<bool(const PhoneHttpRequest&, PhoneHttpResponse&)>;
+// Requires the exact listener Host header and, when present, same-origin HTTP Origin.
+bool is_allowed_phone_request_host_origin(const PhoneHttpRequest& request,
+                                          const std::string& expected_host);
 
 // Explicitly opt-in, single-client-at-a-time LAN HTTP service.
 // Binds only to an RFC1918 IPv4 address supplied by the caller.
@@ -40,6 +43,7 @@ private:
     std::atomic<std::intptr_t> listen_socket_{-1};
     std::thread worker_;
     std::uint16_t port_{};
+    std::string expected_host_;
     PhonePairingAuth auth_;
     PhoneApiHandler handler_;
 };
