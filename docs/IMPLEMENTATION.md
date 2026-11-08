@@ -7,6 +7,13 @@ QueueStore writes a versioned, tab-delimited snapshot. String fields are hex enc
 This stores queue metadata only. It does not yet checkpoint partial download files, ETags, Last-Modified values, per-range completion maps, or fsync the containing directory. Those are required before claiming crash-safe download resume. Callers must choose a writable private data path and serialize concurrent save operations.
 
 
+
+## Range file assembly
+
+The range assembler creates a bounded `.part` staging file from a validated contiguous range plan. It accepts out-of-order chunk writes, checks each chunk's exact assigned length, serializes file access, flushes before marking a chunk complete, and publishes only after every range is present. It refuses to truncate an existing staging file so a future recovery implementation can inspect it.
+
+This is a storage primitive, not a parallel HTTP downloader. It currently has no API to reopen and reconcile an existing partial file with a resume manifest, and chunk writes are serialized through one file stream. Do not claim interrupted downloads can yet be resumed automatically.
+
 ## Resume manifest milestone
 
 A version-1 resume manifest now records the source URL, entity tag, total object length and a contiguous partition of byte ranges with per-range completion flags. The loader parses transactionally and rejects malformed numbers, gaps, overlaps, out-of-bounds ranges and excessive chunk counts. Saving uses a sibling temporary file followed by rename.
