@@ -6,6 +6,7 @@
 #include <limits>
 #include <filesystem>
 #include <array>
+#include <algorithm>
 
 namespace pkgmaster {
 namespace {
