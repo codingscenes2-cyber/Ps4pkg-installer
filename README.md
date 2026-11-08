@@ -1,38 +1,62 @@
 # PKGMaster
 
-A modular PS4 homebrew package-library and download manager prototype.
+A modular PS4 homebrew package-library and download-manager project. The portable C++ core is actively developed and host-tested; this repository is **not yet an installable PS4 application**.
 
-> Status: engineering scaffold, not a production installer. Portable queue/state logic, versioned queue persistence, range planning/response validation, URL policy, capability gating, and a single-stream libcurl HTTP/HTTPS downloader are implemented and host-tested. Parallel range transport, persistent partial-file resume, authenticated phone service, QR pairing, PS4 UI/runtime adapters, archive extraction, and native installer bridge remain incomplete. No installable PS4 PKG has been built or hardware-tested.
+> **Current validation boundary:** host-side CMake build and tests only. No PS4 ELF/PKG has been produced, no PS4 hardware test has been performed, and native package installation is not implemented. The reported target is PS4 firmware 14.00; that is not a compatibility certification. GoldHEN release and console model are not yet recorded.
 
-## Target and compatibility
-- Owner-reported target: PS4 firmware 14.00. This is not a verified compatibility claim.
-- Compatibility strategy: capability-based, not tied to one GoldHEN release. Unknown versions may launch portable parts; platform features stay disabled until their adapters report the required capability.
-- GoldHEN release, console model, and hardware results have not been recorded.
-- Host HTTP transport uses libcurl. A PS4 libcurl port and its TLS/certificate integration must be separately verified before enabling it in a PS4 build.
+## Implemented portable components
 
-See docs/COMPATIBILITY.md and docs/IMPLEMENTATION.md.
-
-## Feature status
-| Area | Current state |
+| Component | Current implementation |
 |---|---|
-| Download queue | Portable state model with pause/resume/retry/cancel |
-| Queue persistence | Versioned snapshot load/save; metadata only |
-| HTTP/HTTPS downloads | Single-stream libcurl transport, size cap, progress, cancellation, redirect refusal, temporary-file publish |
-| Multi-range downloads | Overflow-safe planner, strict Content-Range parser, response validation and staged range-file assembler; parallel HTTP transport pending |
-| Resume metadata | Versioned atomic manifest stores a policy-checked source URL, strong ETag, total size and chunk completion; pending-range and remote-identity helpers added; partial-file resume orchestration pending |
-| Phone submission | Static web UI; authenticated HTTP service pending |
-| QR pairing | API contract only; generation and session exchange pending |
-| Native PS4 UI/controller | Backend boundary only |
-| Native package installation | Not implemented; verified bridge required |
-| USB/HDD scanning | Adapter pending |
-| RAR/multi-volume extraction | Not implemented |
-| Firmware/GoldHEN compatibility | Capability-gating core added; runtime probing pending |
-| Installable PKG | Not built or hardware-tested |
+| Queue/state model | Explicit legal state transitions; queue, pause, resume, retry and cancel operations |
+| Queue persistence | Versioned snapshots, transactional loading and validation; stores job metadata, not partial transfer state |
+| URL policy | HTTP/HTTPS policy checks and rejection of private/local literal destinations; POSIX socket callbacks also reject private/local resolved destinations |
+| Single-stream HTTP | libcurl transport, TLS verification, byte cap, optional receive-rate cap, cancellation, progress, speed/ETA callback, redirect refusal and temporary-file publication |
+| Parallel HTTP | Bounded 2–8 worker range transport, strong ETag binding, exact Content-Range/body validation, per-range staging writes, resume checkpoints and aggregate speed/ETA callback |
+| Interrupted-transfer recovery | Resume manifest v2 stores URL, strong ETag, object length, range map and CRC32 per completed chunk; re-probes identity and verifies recovered chunks before reuse |
+| Whole-file integrity | Optional caller-supplied trusted SHA-256 digest before publishing either single-stream or parallel downloads |
+| Download coordinator | Connects queue state to probe, parallel/single-stream selection, cancellation and ready-to-install state; invoke from a worker thread |
+| Archive extraction | Optional libarchive-backed extraction with staging directory, path/link/special-file rejection and file/size/expansion limits |
+| Compatibility model | Runtime/capability data model and feature gating; this is not yet a complete PS4 runtime probe |
 
-## Build
-Install CMake, a C++17 compiler and libcurl development files. Configure with CMake; when libcurl is found the HTTP transport is enabled. The host CMake target is not a PS4 build. PS4 packaging must follow a verified OpenOrbis sample and a separately validated PS4-compatible network/TLS stack.
+## Not yet implemented / not yet validated
 
-## Security
-The downloader blocks private/local resolved socket destinations on POSIX, disables environment proxies, verifies TLS certificates, rejects redirects pending per-hop URL validation, applies a maximum response size, and publishes via a temporary file only after a complete successful response. Pairing requires a random one-time token, short expiry and LAN-only binding by default. Never expose unauthenticated filesystem access. Reject archive traversal and decompression bombs. Native installation requires an explicit validated adapter; no undocumented GoldHEN/Mira function is assumed.
+- Authenticated LAN phone HTTP service, live QR pairing and browser-to-console submission.
+- PS4-native UI, controller input adapter, USB/HDD discovery and package library scanner/index.
+- Native package-installer handoff. `ReadyToInstall` means the file is downloaded and verified according to configured checks; it does **not** mean the package was installed.
+- PS4-targeted libcurl/TLS integration, OpenOrbis application build, installable PKG and on-console tests.
+- Multi-volume RAR behavior on the target platform; support depends on the linked libarchive build and remains unverified.
+- Trusted package-signature verification. CRC32 is only for detecting accidental local chunk corruption; SHA-256 is meaningful only when the expected digest comes from a trusted source.
 
-No third-party SDK binaries are vendored. Choose distribution terms before adding a license.
+## Build and test on a host
+
+Requirements: CMake 3.20+, C++17 compiler, libcurl development package. Libarchive is optional; without it, archive extraction reports `Unsupported`.
+
+```sh
+cmake -S . -B build -DPKGMASTER_BUILD_TESTS=ON
+cmake --build build --parallel
+ctest --test-dir build --output-on-failure
+```
+
+The GitHub Actions workflow runs these portable host checks. A successful host build does not demonstrate PS4 ABI compatibility, GoldHEN compatibility, or native installer support.
+
+## Compatibility strategy
+
+PKGMaster is designed around capability detection instead of assuming that a firmware or GoldHEN version string guarantees an API. Runtime version fields are diagnostic. Features should remain unavailable until a corresponding adapter has successfully initialized and validated its capability. Unknown versions must not be treated as proof of compatibility.
+
+See [docs/COMPATIBILITY.md](docs/COMPATIBILITY.md), [docs/IMPLEMENTATION.md](docs/IMPLEMENTATION.md), and [docs/PHONE_API.md](docs/PHONE_API.md).
+
+## Security notes
+
+- Redirects are rejected in the current HTTP transports. A future redirect implementation must validate every hop and resolved address.
+- TLS peer and hostname verification are enabled in libcurl builds.
+- Private/local resolved destinations are blocked by POSIX socket callbacks; non-POSIX builds require equivalent platform enforcement before accepting untrusted URLs.
+- Downloads are bounded and staged before publication.
+- Resume requires a matching strong ETag and object length. Manifest CRC32 detects accidental local corruption; it is not cryptographic authenticity.
+- SHA-256 verification is enabled only when the caller supplies a trusted expected digest.
+- Archive extraction rejects unsafe paths and links and enforces configured resource limits.
+- The phone-service design must use short-lived pairing, authenticated sessions, LAN binding and strict request limits before any filesystem action is exposed.
+
+## Third-party dependencies and licensing
+
+CMake discovers libcurl and libarchive optionally. No third-party SDK binaries are vendored. Confirm dependency licensing and choose a project license before distributing binaries.
