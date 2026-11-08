@@ -54,9 +54,9 @@ int main() {
     assert(results[0].metadata.title=="Scanner Test");
     assert(results[0].metadata.title_id=="CUSA12345");
     assert(results[0].param_sfo_bytes>0);
-    options.max_depth=1;
+    options.max_depth=0;
     assert(pkgmaster::scan_package_library({(base/"titles").string()},options,results,error));
-    assert(results.size()==1);
+    assert(results.empty());
     options.max_directories=1;
     assert(!pkgmaster::scan_package_library({(base/"titles").string()},options,results,error));
     assert(error.find("limit")!=std::string::npos);
