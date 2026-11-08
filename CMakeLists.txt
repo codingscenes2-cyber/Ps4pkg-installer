@@ -8,7 +8,7 @@ find_package(Threads REQUIRED)
 find_package(LibArchive QUIET)
 add_library(pkgmaster_core
  src/core/job.cpp src/core/queue.cpp src/core/queue_store.cpp src/core/url_policy.cpp src/core/state_transition.cpp src/core/sha256.cpp
- src/downloader/range_plan.cpp src/downloader/range_file_assembler.cpp src/downloader/resume_manifest.cpp src/downloader/http_downloader.cpp src/downloader/http_probe.cpp src/downloader/parallel_range_downloader.cpp src/downloader/download_coordinator.cpp src/downloader/archive_extractor.cpp src/platform/installer_bridge.cpp src/platform/capabilities.cpp src/platform/phone_pairing_auth.cpp src/package/param_sfo.cpp src/package/library_scanner.cpp src/package/library_index_store.cpp)
+ src/downloader/range_plan.cpp src/downloader/range_file_assembler.cpp src/downloader/resume_manifest.cpp src/downloader/http_downloader.cpp src/downloader/http_probe.cpp src/downloader/parallel_range_downloader.cpp src/downloader/download_coordinator.cpp src/downloader/archive_extractor.cpp src/platform/installer_bridge.cpp src/platform/capabilities.cpp src/platform/phone_pairing_auth.cpp src/platform/secure_random.cpp src/package/param_sfo.cpp src/package/library_scanner.cpp src/package/library_index_store.cpp)
 target_include_directories(pkgmaster_core PUBLIC include)
 target_link_libraries(pkgmaster_core PUBLIC Threads::Threads)
 if(WIN32)
