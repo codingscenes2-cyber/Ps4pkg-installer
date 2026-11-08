@@ -19,7 +19,7 @@ public:
     bool create(const std::string& destination, const RangePlan& plan,
                 std::uint64_t maximum_bytes, bool overwrite,
                 std::string& error);
-    bool write_chunk(std::size_t index, const void* data, std::size_t bytes,
+    bool open_existing(const std::string& destination, const RangePlan& plan,\n                       std::uint64_t maximum_bytes, bool overwrite,\n                       const std::vector<bool>& completed, std::string& error);\n    bool write_chunk(std::size_t index, const void* data, std::size_t bytes,
                      std::string& error);
     bool chunk_complete(std::size_t index) const;
     bool complete() const;
