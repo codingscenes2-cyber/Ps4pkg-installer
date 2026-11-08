@@ -1,6 +1,8 @@
 #include "pkg_inspector.hpp"
 
 #include <array>
+#include <cstddef>
+#include <cstdint>
 #include <fstream>
 #include <limits>
 #include <vector>
