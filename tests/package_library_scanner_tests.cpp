@@ -5,6 +5,7 @@
 #include <filesystem>
 #include <fstream>
 #include <iostream>
+#include <string>
 #include <vector>
 #ifndef _WIN32
 #include <unistd.h>
@@ -17,17 +18,28 @@ static void put32(std::vector<std::uint8_t>& b, std::size_t p, std::uint32_t v) 
     for(int i=0;i<4;++i)b[p+i]=static_cast<std::uint8_t>(v>>(8*i));
 }
 static std::vector<std::uint8_t> make_sfo() {
-    const std::string key("TITLE\0TITLE_ID\0",15);
-    const std::string title("Scanner Test\0",13), id("CUSA12345\0",10);
-    const std::size_t key_off=20+2*16, data_off=key_off+key.size();
-    std::vector<std::uint8_t> b(data_off+title.size()+id.size());
-    put32(b,0,0x46535000); put32(b,4,0x00000101); put32(b,8,static_cast<std::uint32_t>(key_off));
-    put32(b,12,static_cast<std::uint32_t>(data_off)); put32(b,16,2); put16(b,20,0); put16(b,22,0x0204); put32(b,24,title.size()); put32(b,28,title.size()); put32(b,32,0);
-    put16(b,36,6); put16(b,38,0x0204); put32(b,40,id.size()); put32(b,44,id.size()); put32(b,48,title.size());
-    std::copy(key.begin(),key.end(),b.begin()+key_off);
-    std::copy(title.begin(),title.end(),b.begin()+data_off);
-    std::copy(id.begin(),id.end(),b.begin()+data_off+title.size());
-    return b;
+    const std::vector<std::pair<std::string,std::string>> fields={
+        {"TITLE","Scanner Test"},{"TITLE_ID","CUSA12345"}};
+    const std::size_t index=20,key_table=index+fields.size()*16;
+    std::size_t keys=0,data=0;
+    for(const auto& field:fields){keys+=field.first.size()+1;data+=field.second.size()+1;}
+    const std::size_t data_table=key_table+keys;
+    std::vector<std::uint8_t> bytes(data_table+data,0);
+    bytes[0]=0;bytes[1]='P';bytes[2]='S';bytes[3]='F';
+    put32(bytes,4,0x00000101);put32(bytes,8,static_cast<std::uint32_t>(key_table));
+    put32(bytes,12,static_cast<std::uint32_t>(data_table));put32(bytes,16,static_cast<std::uint32_t>(fields.size()));
+    std::size_t key_pos=0,data_pos=0;
+    for(std::size_t i=0;i<fields.size();++i){
+        const auto p=index+i*16;
+        put16(bytes,p,static_cast<std::uint16_t>(key_pos));put16(bytes,p+2,0x0204);
+        put32(bytes,p+4,static_cast<std::uint32_t>(fields[i].second.size()+1));
+        put32(bytes,p+8,static_cast<std::uint32_t>(fields[i].second.size()+1));
+        put32(bytes,p+12,static_cast<std::uint32_t>(data_pos));
+        std::copy(fields[i].first.begin(),fields[i].first.end(),bytes.begin()+key_table+key_pos);
+        std::copy(fields[i].second.begin(),fields[i].second.end(),bytes.begin()+data_table+data_pos);
+        key_pos+=fields[i].first.size()+1;data_pos+=fields[i].second.size()+1;
+    }
+    return bytes;
 }
 static void write_sfo(const fs::path& p, bool valid=true) {
     fs::create_directories(p.parent_path());
