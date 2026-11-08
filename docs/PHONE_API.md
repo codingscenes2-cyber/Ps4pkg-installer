@@ -61,3 +61,8 @@ The portable phone-service core now includes a strict single-request HTTP/1.1 pa
 ## Self-hosted phone web UI
 
 The LAN listener now serves a small same-origin mobile web UI at \`/\` and \`/pair\`, plus its local \`/app.js\` script. Opening the pairing URL places the one-time secret in the URL fragment, which is not sent in the HTTP request; the page consumes it once at \`/api/v1/pair\`, stores the returned bearer token in tab-scoped \`sessionStorage\`, removes the fragment from the visible URL, and then loads status, downloads and library data. The UI supports adding \`.pkg\` URLs and download pause/resume/retry/cancel. It uses no external scripts, fonts or image hosts, builds rows with \`textContent\`, and the server adds restrictive content-security, no-referrer and frame-denial headers. \`make_phone_pairing_url\` validates the LAN address and pairing token and creates the fragment-based URL for the console UI to display or encode as a QR code. This PR does not yet generate the QR matrix or draw it in the native PS4 UI.
+
+
+## QR code generation
+
+The pairing URL can now be rendered locally as a self-contained SVG QR code using a vendored copy of Project Nayuki's C++ QR Code generator (MIT License; attribution and notice retained in `third_party/QR-Code-generator`). The wrapper uses quartile error correction, enforces a 512-byte payload cap, restricts render scale/quiet-zone bounds, and emits only static SVG geometry with a white quiet-zone background. Pairing payloads remain local to the console; no external QR service is contacted. The native PS4 UI still needs to call `make_phone_pairing_url` followed by `generate_phone_pairing_qr_svg` and display the returned SVG.
