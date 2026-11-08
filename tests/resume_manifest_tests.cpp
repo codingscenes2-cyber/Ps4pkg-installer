@@ -22,7 +22,7 @@ int main(){
  assert(pkgmaster::load_resume_manifest(path,restored,error));
  assert(restored.source_url==m.source_url&&restored.entity_tag==m.entity_tag);
  assert(restored.total_bytes==1000&&restored.chunks.size()==4);
- assert(restored.chunks[1].complete&&!restored.chunks[2].complete);
+ assert(restored.chunks[1].complete&&restored.chunks[2].complete&&!restored.chunks[3].complete);
  auto invalid=m;invalid.chunks[1].range.first=249;
  assert(!pkgmaster::validate_resume_manifest(invalid,error));
  invalid=m;invalid.chunks.back().range.last=1000;
