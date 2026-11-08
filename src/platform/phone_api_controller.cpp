@@ -98,11 +98,30 @@ PhoneApiController::PhoneApiController(Queue& queue, DownloadCoordinator& downlo
       library_index_path_(std::move(library_index_path)),
       storage_candidates_(std::move(storage_candidates)) {
     if (run_download_worker) {
-        worker_ = std::thread(&PhoneApiController::worker_loop, this);
-        for (const auto& job : queue_.snapshot())
-            if (job.state == JobState::Queued || job.state == JobState::Resolving ||
-                job.state == JobState::Downloading) enqueue(job.id);
+        std::string ignored_error;
+        start_worker(ignored_error);
     }
+}
+bool PhoneApiController::start_worker(std::string& error) {
+    error.clear();
+    {
+        std::lock_guard<std::mutex> lock(mutex_);
+        if (stopping_) {
+            error = "Download worker is stopping";
+            return false;
+        }
+        if (worker_.joinable()) return true;
+        try {
+            worker_ = std::thread(&PhoneApiController::worker_loop, this);
+        } catch (...) {
+            error = "Could not start download worker thread";
+            return false;
+        }
+    }
+    for (const auto& job : queue_.snapshot())
+        if (job.state == JobState::Queued || job.state == JobState::Resolving ||
+            job.state == JobState::Downloading) enqueue(job.id);
+    return true;
 }
 PhoneApiController::~PhoneApiController() {
     std::uint64_t active = 0;
@@ -112,7 +131,7 @@ PhoneApiController::~PhoneApiController() {
         active = active_id_;
         pending_.clear();
     }
-    if (active) downloads_.cancel(active);
+    if (active && !downloads_.pause(active)) downloads_.cancel(active);
     condition_.notify_all();
     if (worker_.joinable()) worker_.join();
 }
