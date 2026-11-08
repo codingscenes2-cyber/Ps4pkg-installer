@@ -3,6 +3,7 @@
 #include "pkgmaster/downloader/download_coordinator.hpp"
 #include "pkgmaster/platform/phone_lan_server.hpp"
 #include "pkgmaster/platform/storage.hpp"
+#include <vector>
 #include <cstdint>
 #include <memory>
 #include <string>
@@ -18,7 +19,8 @@ public:
     PhoneServiceRuntime(Queue& queue, DownloadCoordinator& downloads,
                         std::string downloads_directory,
                         std::string library_index_path,
-                        std::vector<StorageCandidate> storage_candidates = {});
+                        std::vector<StorageCandidate> storage_candidates = {},
+                        std::string queue_snapshot_path = {});
     ~PhoneServiceRuntime();
     PhoneServiceRuntime(const PhoneServiceRuntime&) = delete;
     PhoneServiceRuntime& operator=(const PhoneServiceRuntime&) = delete;
@@ -27,6 +29,7 @@ public:
                std::string& pairing_url, std::string& pairing_qr_svg,
                std::string& error);
     void stop();
+    const std::string& persistence_error() const noexcept { return persistence_error_; }
     bool running() const noexcept;
     std::uint16_t port() const noexcept;
 
@@ -35,6 +38,8 @@ private:
     DownloadCoordinator& downloads_;
     std::string downloads_directory_;
     std::string library_index_path_;
+    std::string queue_snapshot_path_;
+    std::string persistence_error_;
     std::vector<StorageCandidate> storage_candidates_;
     std::unique_ptr<PhoneApiController> controller_;
     std::unique_ptr<PhoneLanServer> server_;
