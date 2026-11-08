@@ -1,4 +1,5 @@
 #include "pkgmaster/platform/phone_pairing_auth.hpp"
+#include "pkgmaster/platform/secure_random.hpp"
 #include <limits>
 
 namespace pkgmaster {
@@ -33,6 +34,28 @@ void PhonePairingAuth::wipe(std::string& value) noexcept {
     volatile char* data = value.empty() ? nullptr : &value[0];
     for (std::size_t i = 0; i < value.size(); ++i) data[i] = 0;
     value.clear();
+}
+bool PhonePairingAuth::arm_random(std::uint64_t now_ms,
+                                    std::uint64_t pairing_lifetime_ms,
+                                    std::uint64_t session_lifetime_ms,
+                                    std::string& pairing_secret_out,
+                                    std::string& error) {
+    std::string pairing_secret, session_token;
+    if (!generate_secure_token_hex(pairing_secret, error)) return false;
+    if (!generate_secure_token_hex(session_token, error)) {
+        wipe(pairing_secret);
+        return false;
+    }
+    if (!arm(pairing_secret, session_token, now_ms, pairing_lifetime_ms,
+             session_lifetime_ms, error)) {
+        wipe(pairing_secret);
+        wipe(session_token);
+        return false;
+    }
+    pairing_secret_out = pairing_secret;
+    wipe(pairing_secret);
+    wipe(session_token);
+    return true;
 }
 bool PhonePairingAuth::arm(const std::string& pairing_secret,
                            const std::string& session_token,
