@@ -1,0 +1,19 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#101319"><title>PKGMaster</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<header><div class="mark">P</div><div><strong>PKGMaster</strong><small>PS4 · Local manager</small></div><span class="status"><i></i> Paired locally</span></header>
+<main>
+<section class="hero"><p class="eyebrow">PHONE → CONSOLE</p><h1>Send a package.<br><span>We’ll queue it.</span></h1>
+<p class="muted">Paste a direct download link. Your console handles the download after you send it.</p></section>
+<section class="panel"><label for="url">Package download URL</label><textarea id="url" rows="3" placeholder="https://example.com/package.pkg"></textarea>
+<div class="actions"><button id="send">Send to PS4</button><span id="message" role="status">Waiting for a link</span></div></section>
+<section class="panel"><div class="section-head"><h2>Download queue</h2><span class="pill">LOCAL SESSION</span></div><div id="queue" class="empty">Queue status will appear when the console service is connected.</div></section>
+<section class="panel"><div class="section-head"><h2>Library</h2><span class="pill">PS4 STORAGE</span></div><div class="empty">Library browsing requires the PS4 service.</div></section>
+</main><footer>Only use links and packages you are authorized to download and install.</footer>
+<script src="app.js"></script>
+</body></html>

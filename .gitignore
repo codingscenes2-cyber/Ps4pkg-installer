@@ -1,0 +1,10 @@
+build/
+dist/
+*.o
+*.elf
+*.bin
+*.pkg
+*.gp4
+*.sfo
+*.log
+.DS_Store
