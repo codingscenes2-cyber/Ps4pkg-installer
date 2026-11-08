@@ -70,3 +70,8 @@ Durability limitation: stream flush and rename are not fsync guarantees, so sudd
 ## Resume chunk integrity
 
 Resume manifest version 2 stores a CRC32 for each completed range. On restart, PKGMaster verifies completed ranges against the checksum before trusting them. A completed range with a missing checksum (including a version-1 legacy checkpoint) or a checksum mismatch is invalidated and scheduled for re-download; it is never silently treated as valid. CRC32 detects accidental staging-file corruption but is not a cryptographic authenticity mechanism. The strong ETag still binds the range requests to one remote object version, and a trusted package hash/signature check remains a separate future requirement.
+
+
+## Download telemetry and bandwidth controls
+
+HTTP download options now expose a live metrics callback with received/total bytes, percent, smoothed bytes-per-second and ETA when enough samples exist. The speed tracker uses monotonic elapsed time, handles counter resets and avoids division by zero. A maximum receive-rate option can cap the single-stream curl transfer. Parallel mode divides the configured cap across workers and applies a per-connection libcurl receive limit; this is an approximate aggregate cap, not a strict shared token-bucket limiter. Zero leaves bandwidth unlimited.
