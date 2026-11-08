@@ -33,3 +33,8 @@ Mutating requests require `Authorization: Bearer <session-token>`. The browser m
 - Never accept arbitrary filesystem paths from phone requests.
 - Do not log tokens, passwords or signed URL query strings.
 - Use platform cryptographic randomness, not timestamps or ordinary PRNG.
+
+
+## Pairing credential rules
+
+The portable core now contains `PhonePairingAuth`, an in-memory one-time pairing and bearer-session state machine. The LAN server integration must generate two distinct 256-bit tokens using an operating-system cryptographically secure random source: one short-lived pairing secret and one session token. The QR code may contain only the pairing secret plus the local pairing endpoint; never include the session token. Pairing secrets expire within five minutes and are consumed on the first successful exchange. Session lifetime is bounded to 30 days, and the server must call `authenticate` for every protected request and `revoke` when pairing is disabled or the service stops. The class does not generate entropy, create QR codes, open sockets, or implement an HTTP server; callers must provide CSPRNG tokens and enforce LAN-only binding, origin/CSRF checks, TLS or a clearly documented trusted-LAN threat model, request limits, and rate limiting.
