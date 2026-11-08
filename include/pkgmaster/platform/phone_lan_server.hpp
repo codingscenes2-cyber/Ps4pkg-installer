@@ -4,6 +4,7 @@
 #include <atomic>
 #include <cstdint>
 #include <functional>
+#include <cstdint>
 #include <string>
 #include <thread>
 
@@ -34,9 +35,9 @@ public:
 
 private:
     void serve();
-    void handle_client(int client);
+    void handle_client(std::intptr_t client);
     std::atomic_bool running_{false};
-    std::atomic<int> listen_socket_{-1};
+    std::atomic<std::intptr_t> listen_socket_{-1};
     std::thread worker_;
     std::uint16_t port_{};
     PhonePairingAuth auth_;
