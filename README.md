@@ -18,7 +18,7 @@ See docs/COMPATIBILITY.md and docs/IMPLEMENTATION.md.
 | Download queue | Portable state model with pause/resume/retry/cancel |
 | Queue persistence | Versioned snapshot load/save; metadata only |
 | HTTP/HTTPS downloads | Single-stream libcurl transport, size cap, progress, cancellation, redirect refusal, temporary-file publish |
-| Multi-range downloads | Overflow-safe planner, strict Content-Range parser and response validation; parallel transport pending |
+| Multi-range downloads | Overflow-safe planner, strict Content-Range parser, response validation and staged range-file assembler; parallel HTTP transport pending |
 | Resume metadata | Versioned atomic manifest stores a policy-checked source URL, strong ETag, total size and chunk completion; pending-range and remote-identity helpers added; partial-file resume orchestration pending |
 | Phone submission | Static web UI; authenticated HTTP service pending |
 | QR pairing | API contract only; generation and session exchange pending |

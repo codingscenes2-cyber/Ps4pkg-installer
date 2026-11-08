@@ -6,7 +6,7 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 find_package(CURL QUIET)
 add_library(pkgmaster_core
  src/core/job.cpp src/core/queue.cpp src/core/queue_store.cpp src/core/url_policy.cpp src/core/state_transition.cpp
- src/downloader/range_plan.cpp src/downloader/resume_manifest.cpp src/downloader/http_downloader.cpp src/platform/installer_bridge.cpp src/platform/capabilities.cpp)
+ src/downloader/range_plan.cpp src/downloader/range_file_assembler.cpp src/downloader/resume_manifest.cpp src/downloader/http_downloader.cpp src/platform/installer_bridge.cpp src/platform/capabilities.cpp)
 target_include_directories(pkgmaster_core PUBLIC include)
 if(CURL_FOUND)
  target_compile_definitions(pkgmaster_core PRIVATE PKGMASTER_HAS_CURL=1)
@@ -34,5 +34,8 @@ if(PKGMASTER_BUILD_TESTS)
  add_executable(pkgmaster_resume_tests tests/resume_manifest_tests.cpp)
  target_link_libraries(pkgmaster_resume_tests PRIVATE pkgmaster_core)
  add_test(NAME pkgmaster_resume_tests COMMAND pkgmaster_resume_tests)
+ add_executable(pkgmaster_range_file_tests tests/range_file_assembler_tests.cpp)
+ target_link_libraries(pkgmaster_range_file_tests PRIVATE pkgmaster_core)
+ add_test(NAME pkgmaster_range_file_tests COMMAND pkgmaster_range_file_tests)
 endif()
 # Host portable core only. PS4 packaging must follow a verified OpenOrbis sample.
