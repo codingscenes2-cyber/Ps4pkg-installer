@@ -3,6 +3,8 @@
 #include <chrono>
 #include <cctype>
 #include <cstring>
+#include <cerrno>
+#include <utility>
 #include <sstream>
 #include <string>
 #include <vector>
@@ -213,7 +215,7 @@ bool PhoneLanServer::start(const std::string& address, std::uint16_t port,
     }
     port_ = port;
     handler_ = std::move(handler);
-    listen_socket_.store(static_cast<int>(socket_fd));
+    listen_socket_.store(static_cast<std::intptr_t>(socket_fd));
     running_.store(true);
     try {
         worker_ = std::thread(&PhoneLanServer::serve, this);
@@ -237,7 +239,7 @@ void PhoneLanServer::stop() {
         if (worker_.joinable()) worker_.join();
         return;
     }
-    const int socket_fd = listen_socket_.exchange(-1);
+    const std::intptr_t socket_fd = listen_socket_.exchange(-1);
     if (socket_fd >= 0) {
 #if defined(_WIN32)
         ::shutdown(static_cast<SOCKET>(socket_fd), SD_BOTH);
@@ -257,12 +259,12 @@ void PhoneLanServer::stop() {
 
 void PhoneLanServer::serve() {
     while (running_) {
-        const int fd = listen_socket_.load();
+        const Socket fd = static_cast<Socket>(listen_socket_.load());
         if (fd < 0) break;
         sockaddr_in peer{};
 #if defined(_WIN32)
         int peer_size = sizeof(peer);
-        Socket client = ::accept(static_cast<SOCKET>(fd), reinterpret_cast<sockaddr*>(&peer), &peer_size);
+        Socket client = ::accept(fd, reinterpret_cast<sockaddr*>(&peer), &peer_size);
 #else
         socklen_t peer_size = sizeof(peer);
         Socket client = ::accept(fd, reinterpret_cast<sockaddr*>(&peer), &peer_size);
@@ -280,12 +282,12 @@ void PhoneLanServer::serve() {
         ::setsockopt(client, SOL_SOCKET, SO_RCVTIMEO, reinterpret_cast<const char*>(&timeout), sizeof(timeout));
         ::setsockopt(client, SOL_SOCKET, SO_SNDTIMEO, reinterpret_cast<const char*>(&timeout), sizeof(timeout));
 #endif
-        handle_client(static_cast<int>(client));
+        handle_client(static_cast<std::intptr_t>(client));
         close_socket(client);
     }
 }
 
-void PhoneLanServer::handle_client(int client_fd) {
+void PhoneLanServer::handle_client(std::intptr_t client_fd) {
     const Socket client = static_cast<Socket>(client_fd);
     std::string bytes;
     if (!receive_request(client, bytes)) {
