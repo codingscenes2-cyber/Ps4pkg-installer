@@ -75,9 +75,11 @@ jobs:
           rm -rf "$RUNNER_TEMP/pkgmaster-pkg-inspect"
           mkdir -p "$RUNNER_TEMP/pkgmaster-pkg-inspect"
           "$OO_PS4_TOOLCHAIN/bin/linux/PkgTool.Core" pkg_extract --verbose ps4/PKGMaster/IV0000-PKGM00001_00-PKGMASTER0000001.pkg "$RUNNER_TEMP/pkgmaster-pkg-inspect"
-          test -s "$RUNNER_TEMP/pkgmaster-pkg-inspect/eboot.bin"
-          test -s "$RUNNER_TEMP/pkgmaster-pkg-inspect/sce_sys/param.sfo"
-          test -s "$RUNNER_TEMP/pkgmaster-pkg-inspect/sce_sys/icon0.png"
+          test -s "$RUNNER_TEMP/pkgmaster-pkg-inspect/uroot/eboot.bin"
+          "$OO_PS4_TOOLCHAIN/bin/linux/PkgTool.Core" pkg_extractentry ps4/PKGMaster/IV0000-PKGM00001_00-PKGMASTER0000001.pkg 9 "$RUNNER_TEMP/pkgmaster-param.sfo"
+          "$OO_PS4_TOOLCHAIN/bin/linux/PkgTool.Core" pkg_extractentry ps4/PKGMaster/IV0000-PKGM00001_00-PKGMASTER0000001.pkg 13 "$RUNNER_TEMP/pkgmaster-icon0.png"
+          test -s "$RUNNER_TEMP/pkgmaster-param.sfo"
+          test -s "$RUNNER_TEMP/pkgmaster-icon0.png"
           sha256sum ps4/PKGMaster/eboot.bin ps4/PKGMaster/IV0000-PKGM00001_00-PKGMASTER0000001.pkg
 
       - name: Upload PS4 test package
