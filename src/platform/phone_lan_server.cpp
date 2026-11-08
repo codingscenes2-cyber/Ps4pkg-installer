@@ -21,6 +21,7 @@
 #endif
 
 namespace pkgmaster {
+namespace { std::string lower(std::string value); }
 bool is_allowed_phone_request_host_origin(const PhoneHttpRequest& request,
                                           const std::string& expected_host) {
     if (expected_host.empty()) return false;
@@ -242,6 +243,9 @@ bool PhoneLanServer::start(const std::string& address, std::uint16_t port,
         close_socket(socket_fd);
         auth_.revoke();
         pairing_secret.clear();
+        handler_ = {};
+        port_ = 0;
+        expected_host_.clear();
         error = "Could not start phone service worker";
 #if defined(_WIN32)
         WSACleanup();
