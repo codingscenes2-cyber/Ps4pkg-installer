@@ -110,3 +110,8 @@ A bounded host-portable scanner now walks configured directory roots for extract
 ## Package library index persistence
 
 `PackageLibraryIndexStore` persists extracted-title metadata and the paths to each package directory and `param.sfo` file. The versioned tab-delimited format hex-encodes string fields, sorts records deterministically, rejects duplicate metadata paths, and enforces record, string and total-file size limits. Loading is transactional: malformed headers, records, duplicate paths, invalid numbers or oversized files leave the caller's existing collection unchanged. Saving writes a sibling temporary file and renames it into place. This is a metadata cache, not a source of truth: rescan directories when freshness matters, treat the index as untrusted input, and do not use it to authorize installation. The current implementation does not fsync the file or parent directory, so it does not promise power-loss durability.
+
+
+## Phone pairing authentication core
+
+`PhonePairingAuth` provides an in-memory one-time pairing exchange and bounded bearer-session validation for the future phone service. It validates two distinct 256-bit hex credentials supplied by the caller, caps pairing lifetime at five minutes and session lifetime at 30 days, consumes the pairing secret on success, uses a constant-time comparison loop, and wipes credential string buffers when consumed or revoked. It deliberately does not generate random values: the future server must use an operating-system CSPRNG. This is not a live LAN server, QR generator, network listener, TLS implementation, or complete CSRF/rate-limit layer.
