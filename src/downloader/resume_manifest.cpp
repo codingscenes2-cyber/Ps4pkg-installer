@@ -87,6 +87,10 @@ bool is_strong_etag(const std::string& etag) {
 
 bool validate_resume_manifest(const ResumeManifest& manifest,
                               std::string& error) {
+    if (manifest.source_url.size() > 8192 || manifest.entity_tag.size() > 8192) {
+        error = "Resume URL or ETag exceeds the metadata size limit.";
+        return false;
+    }
     std::string url_error;
     if (!is_allowed_download_url(manifest.source_url, url_error)) {
         error = "Resume source URL is not allowed: " + url_error;
