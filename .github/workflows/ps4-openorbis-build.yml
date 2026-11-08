@@ -27,7 +27,7 @@ jobs:
       - name: Install host build tools
         run: |
           sudo apt-get update
-          sudo apt-get install -y clang lld make python3 curl
+          sudo apt-get install -y clang lld make python3 curl g++
 
       - name: Download pinned OpenOrbis toolchain
         env:
@@ -80,6 +80,15 @@ jobs:
           "$OO_PS4_TOOLCHAIN/bin/linux/PkgTool.Core" pkg_extractentry ps4/PKGMaster/IV0000-PKGM00001_00-PKGMASTER0000001.pkg 13 "$RUNNER_TEMP/pkgmaster-icon0.png"
           test -s "$RUNNER_TEMP/pkgmaster-param.sfo"
           test -s "$RUNNER_TEMP/pkgmaster-icon0.png"
+          g++ -std=c++17 -Iinclude -Ips4/PKGMaster/src \
+            ps4/PKGMaster/src/pkg_inspector.cpp \
+            src/package/param_sfo.cpp \
+            ps4/PKGMaster/tests/inspect_pkg_host.cpp \
+            -o "$RUNNER_TEMP/pkgmaster-inspect-host"
+          "$RUNNER_TEMP/pkgmaster-inspect-host" ps4/PKGMaster/IV0000-PKGM00001_00-PKGMASTER0000001.pkg | tee "$RUNNER_TEMP/pkgmaster-metadata.txt"
+          grep -F "TITLE=PKGMaster PS4 Boot Test" "$RUNNER_TEMP/pkgmaster-metadata.txt"
+          grep -F "TITLE_ID=PKGM00001" "$RUNNER_TEMP/pkgmaster-metadata.txt"
+          grep -F "APP_VER=0.1.0" "$RUNNER_TEMP/pkgmaster-metadata.txt"
           sha256sum ps4/PKGMaster/eboot.bin ps4/PKGMaster/IV0000-PKGM00001_00-PKGMASTER0000001.pkg
 
       - name: Upload PS4 test package
