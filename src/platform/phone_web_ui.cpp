@@ -39,6 +39,7 @@ footer{color:#8493a8;font-size:12px;margin-top:20px;line-height:1.5}
 <div id="message" role="status" aria-live="polite">Pair this phone using the one-time link displayed by your console.</div>
 <section class="panel"><h2>Add a package download</h2><form id="download-form"><input id="package-url" type="url" placeholder="https://host.example/game.pkg" autocomplete="url" required><button type="submit">Add download</button></form><div class="muted" style="margin-top:9px">Only .pkg downloads are accepted. Files are saved in the console's configured download folder.</div></section>
 <section class="panel"><h2>Downloads</h2><div id="downloads" class="empty">Waiting for connection…</div></section>
+<section class="panel"><h2>Storage</h2><div id="storage" class="empty">Waiting for connection…</div></section>
 <section class="panel"><h2>Package library</h2><div id="library" class="empty">Waiting for connection…</div></section>
 <footer>Connected over your local network. Pairing and API traffic use HTTP in this build; use only on a trusted, isolated LAN. Never share your pairing link or session.</footer>
 </main></body></html>)PKGHTML";
@@ -116,12 +117,36 @@ const std::string& phone_web_ui_javascript() {
       title.append(name, meta); row.append(title); root.append(row);
     }
   };
+  const formatBytes = value => {
+    if (!value) return "0 B";
+    const units = ["B", "KB", "MB", "GB", "TB"];
+    let amount = value, index = 0;
+    while (amount >= 1024 && index < units.length - 1) { amount /= 1024; index++; }
+    return amount.toFixed(index ? 1 : 0) + " " + units[index];
+  };
+  const refreshStorage = async () => {
+    const data = await api("/api/v1/storage");
+    const root = $("storage"); root.replaceChildren();
+    if (!data.volumes || !data.volumes.length) {
+      root.className = "empty"; root.textContent = "No configured storage volumes are currently available."; return;
+    }
+    root.className = "";
+    for (const volume of data.volumes) {
+      const row = document.createElement("div"); row.className = "item";
+      const info = document.createElement("div");
+      const title = document.createElement("div"); title.className = "item-title";
+      title.textContent = volume.label || volume.id;
+      const meta = document.createElement("div"); meta.className = "meta";
+      meta.textContent = volume.kind + " · " + formatBytes(volume.available_bytes) + " free of " + formatBytes(volume.total_bytes) + " · " + (volume.writable ? "writable" : "read-only");
+      info.append(title, meta); row.append(info); root.append(row);
+    }
+  };
   const refresh = async () => {
     if (!token) return;
     try {
       await api("/api/v1/status");
       $("connection").textContent = "Connected";
-      await Promise.all([refreshDownloads(), refreshLibrary()]);
+      await Promise.all([refreshDownloads(), refreshLibrary(), refreshStorage()]);
     } catch (e) { message(e.message); }
   };
   const pair = async () => {
