@@ -48,3 +48,8 @@ Use a maintained archive library only after confirming its PS4 port and license.
 ## Firmware validation
 
 A package's SFO minimum system version, the app's target firmware and GoldHEN payload support are separate concerns. Record exact console model, firmware, payload release and test result for every hardware validation run.
+
+
+## HTTP resource capability probe
+
+The HTTP probe performs a HEAD request and then a one-byte GET with Range: bytes=0-0. It accepts range support only when the server returns HTTP 206, an exact Content-Range for the discovered object length, and exactly one body byte. Redirects are rejected rather than followed. The probe reports resumability only when a syntactically strong ETag is available; when present, If-Match is sent on the validation request to prevent silently probing a changed object. This is capability discovery only: it does not yet download parallel ranges, persist checkpoints, or resume transfers.
