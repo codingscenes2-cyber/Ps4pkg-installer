@@ -37,11 +37,9 @@ struct Body {
     const std::atomic_bool* failed{};
 };
 std::string trim(const std::string& v) {
-    const auto a=v.find_first_not_of(" \t\r
-");
+    const auto a=v.find_first_not_of(" \t\r\n");
     if(a==std::string::npos)return {};
-    return v.substr(a,v.find_last_not_of(" \t\r
-")-a+1);
+    return v.substr(a,v.find_last_not_of(" \t\r\n")-a+1);
 }
 size_t header_cb(char* p,size_t size,size_t count,void* opaque) {
     if(size&&count>std::numeric_limits<size_t>::max()/size)return 0;
