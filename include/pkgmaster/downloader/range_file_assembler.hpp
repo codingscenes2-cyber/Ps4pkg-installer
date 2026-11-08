@@ -33,7 +33,6 @@ private:
     std::string temporary_path_;
     std::vector<bool> completed_;
     RangePlan plan_;
-    std::uint64_t total_bytes_{};
     bool overwrite_{false};
     bool initialized_{false};
     bool published_{false};
