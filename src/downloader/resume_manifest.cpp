@@ -1,4 +1,5 @@
 #include "pkgmaster/downloader/resume_manifest.hpp"
+#include "pkgmaster/core/url_policy.hpp"
 #include <cstdio>
 #include <fstream>
 #include <limits>
@@ -24,7 +25,10 @@ bool split(const std::string& s,std::vector<std::string>& f){
 }
 }
 bool validate_resume_manifest(const ResumeManifest& m,std::string& error){
- if(m.source_url.empty()||m.total_bytes==0||m.chunks.empty()||m.chunks.size()>4096){error="Resume manifest has missing metadata or an invalid chunk count.";return false;}
+ std::string url_error;
+ if(!is_allowed_download_url(m.source_url,url_error)){error="Resume source URL is not allowed: "+url_error;return false;}
+ if(m.entity_tag.empty()||m.entity_tag.rfind("W/",0)==0){error="A strong ETag is required before resuming partial bytes.";return false;}
+ if(m.total_bytes==0||m.chunks.empty()||m.chunks.size()>4096){error="Resume manifest has missing metadata or an invalid chunk count.";return false;}
  std::uint64_t cursor=0;
  for(const auto& c:m.chunks){
   if(c.range.first!=cursor||c.range.first>c.range.last||c.range.last>=m.total_bytes){error="Resume chunks must form a contiguous, non-overlapping partition.";return false;}
