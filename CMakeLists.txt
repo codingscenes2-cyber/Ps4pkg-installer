@@ -12,6 +12,9 @@ add_library(pkgmaster_core
     src/platform/installer_bridge.cpp
 )
 target_include_directories(pkgmaster_core PUBLIC include)
+
+add_executable(pkgmaster_core_demo src/main.cpp)
+target_link_libraries(pkgmaster_core_demo PRIVATE pkgmaster_core)
 if(MSVC)
   target_compile_options(pkgmaster_core PRIVATE /W4)
 else()
