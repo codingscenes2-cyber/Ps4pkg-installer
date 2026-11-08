@@ -75,3 +75,8 @@ Resume manifest version 2 stores a CRC32 for each completed range. On restart, P
 ## Download telemetry and bandwidth controls
 
 HTTP download options now expose a live metrics callback with received/total bytes, percent, smoothed bytes-per-second and ETA when enough samples exist. The speed tracker uses monotonic elapsed time, handles counter resets and avoids division by zero. A maximum receive-rate option can cap the single-stream curl transfer. Parallel mode divides the configured cap across workers and applies a per-connection libcurl receive limit; this is an approximate aggregate cap, not a strict shared token-bucket limiter. Zero leaves bandwidth unlimited.
+
+
+## Queue download coordinator
+
+DownloadCoordinator connects queue jobs to the HTTP engines. It moves jobs through Resolving, Downloading, Verifying and ReadyToInstall, persists byte progress through Queue updates, selects parallel range mode only when the probe confirms range support and a strong ETag, and otherwise uses the single-stream HTTP path. It owns the active cancellation flag and exposes pause/cancel/resume controls. Pause is offered only while a resumable parallel transfer is active; single-stream transfers do not claim pause/resume support. The coordinator is synchronous and must be invoked on a worker thread by the future UI. ReadyToInstall means the file is downloaded and ready for a separately validated native installer handoff; it does not mean installation occurred.
