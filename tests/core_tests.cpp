@@ -7,7 +7,9 @@
 #include <cassert>
 int main() {
  pkgmaster::Job j; j.expected_bytes=200; j.received_bytes=50; assert(j.progress()>0.249&&j.progress()<0.251); assert(!j.terminal());
- pkgmaster::Queue q; const auto id=q.add(j); assert(q.get(id).has_value()); assert(q.cancel(id)); assert(q.get(id)->terminal());
+ pkgmaster::Queue q; auto id=q.add(j); assert(q.get(id).has_value()); assert(q.cancel(id)); assert(q.get(id)->terminal());
+ pkgmaster::Job d; d.state=pkgmaster::JobState::Downloading; d.expected_bytes=100; auto did=q.add(d); assert(q.pause(did)); assert(q.resume(did)); assert(q.get(did)->state==pkgmaster::JobState::Resolving);
+ pkgmaster::Job f; f.state=pkgmaster::JobState::Failed; f.received_bytes=12; f.error="network"; auto fid=q.add(f); assert(q.retry(fid)); assert(q.get(fid)->received_bytes==0&&q.get(fid)->error.empty()&&q.get(fid)->state==pkgmaster::JobState::Queued);
  std::string reason; assert(pkgmaster::is_allowed_download_url("https://example.com/file.pkg",reason)); assert(!pkgmaster::is_allowed_download_url("file:///etc/passwd",reason)); assert(!pkgmaster::is_allowed_download_url("http://127.0.0.1/file.pkg",reason));
  assert(pkgmaster::can_transition(pkgmaster::JobState::Queued,pkgmaster::JobState::Resolving)); assert(!pkgmaster::can_transition(pkgmaster::JobState::Completed,pkgmaster::JobState::Downloading));
  const auto plan=pkgmaster::make_range_plan(10*1024*1024,4,1024*1024); assert(plan.parts.size()==4&&plan.parts.front().first==0&&plan.parts.back().last==plan.total_bytes-1);
