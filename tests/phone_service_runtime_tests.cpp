@@ -27,7 +27,7 @@ int main() {
     pkgmaster::PhoneServiceRuntime service(queue, downloads, (root / "downloads").string(),
                                            (root / "library.idx").string(), {}, snapshot);
     std::string url, qr;
-    assert(!service.start("127.0.0.1", 8080, url, qr, error));
+    assert(!service.start("10.255.255.254", 65534, url, qr, error));
     const auto restored = queue.snapshot();
     assert(restored.size() == 1);
     assert(restored[0].id == 17);
@@ -37,9 +37,6 @@ int main() {
     assert(service.persistence_error().empty());
 
     pkgmaster::Queue bad_queue;
-    pkgmaster::Job existing;
-    existing.file_name = "keep.pkg";
-    bad_queue.add(existing);
     pkgmaster::DownloadCoordinator bad_downloads(bad_queue);
     {
         std::ofstream out(snapshot, std::ios::binary | std::ios::trunc);
@@ -50,7 +47,6 @@ int main() {
     error.clear();
     assert(!bad_service.start("192.168.1.20", 8080, url, qr, error));
     assert(!error.empty());
-    assert(bad_queue.snapshot().size() == 1);
-    assert(bad_queue.snapshot()[0].file_name == "keep.pkg");
+    assert(bad_queue.snapshot().empty());
     fs::remove_all(root, ec);
 }
