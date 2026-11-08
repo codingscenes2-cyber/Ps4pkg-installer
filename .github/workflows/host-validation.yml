@@ -1,0 +1,55 @@
+name: Host validation artifact
+
+on:
+  push:
+    branches: [main, "work/**"]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  host-build:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install native dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y cmake ninja-build g++ libcurl4-openssl-dev libarchive-dev
+
+      - name: Configure, build and test
+        run: |
+          cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Release -DPKGMASTER_BUILD_TESTS=ON -DPKGMASTER_BUILD_HOST_SERVICE=ON
+          cmake --build build --parallel 2
+          ctest --test-dir build --output-on-failure
+
+      - name: Assemble host-only test bundle
+        if: success()
+        run: |
+          mkdir -p artifact/bin
+          cp build/pkgmaster_core_demo artifact/bin/
+          cp build/pkgmaster_service_host artifact/bin/
+          find build -maxdepth 1 -type f -executable -name '*_tests' -exec cp {} artifact/bin/ \;
+          {
+            echo "Artifact: PKGMaster host validation bundle"
+            echo "Commit: $GITHUB_SHA"
+            echo "Platform: Ubuntu 24.04 x86_64"
+            echo "Build type: Release"
+            echo "IMPORTANT: These are desktop host binaries, NOT PS4 ELF/PKG files."
+          } > artifact/BUILD-INFO.txt
+          tar -czf pkgmaster-host-validation-linux-x86_64.tar.gz -C artifact .
+
+      - name: Upload test bundle
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: pkgmaster-host-validation-linux-x86_64
+          path: pkgmaster-host-validation-linux-x86_64.tar.gz
+          if-no-files-found: error
+          retention-days: 14
