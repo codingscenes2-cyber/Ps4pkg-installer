@@ -7,7 +7,6 @@
 #include <utility>
 #include <sstream>
 #include <string>
-#include <vector>
 
 #if defined(_WIN32)
 #include <winsock2.h>
@@ -260,7 +259,7 @@ void PhoneLanServer::stop() {
 void PhoneLanServer::serve() {
     while (running_) {
         const Socket fd = static_cast<Socket>(listen_socket_.load());
-        if (fd < 0) break;
+        if (fd == kInvalidSocket) break;
         sockaddr_in peer{};
 #if defined(_WIN32)
         int peer_size = sizeof(peer);
@@ -271,6 +270,12 @@ void PhoneLanServer::serve() {
 #endif
         if (client == kInvalidSocket) {
             if (!running_) break;
+            continue;
+        }
+        char peer_address[INET_ADDRSTRLEN]{};
+        if (!::inet_ntop(AF_INET, &peer.sin_addr, peer_address, sizeof(peer_address)) ||
+            !PhoneLanServer::is_private_lan_ipv4(peer_address)) {
+            close_socket(client);
             continue;
         }
 #if !defined(_WIN32)
