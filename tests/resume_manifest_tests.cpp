@@ -22,6 +22,10 @@ int main(){
  assert(!pkgmaster::validate_resume_manifest(invalid,error));
  invalid=m;invalid.chunks[0].range.last=std::numeric_limits<std::uint64_t>::max();
  assert(!pkgmaster::validate_resume_manifest(invalid,error));
+ invalid=m;invalid.entity_tag="W/weak-tag";
+ assert(!pkgmaster::validate_resume_manifest(invalid,error));
+ invalid=m;invalid.source_url="http://127.0.0.1/private.pkg";
+ assert(!pkgmaster::validate_resume_manifest(invalid,error));
  pkgmaster::ResumeManifest unchanged;unchanged.source_url="sentinel";
  assert(!pkgmaster::load_resume_manifest("missing-resume-file.db",unchanged,error));
  assert(unchanged.source_url=="sentinel");
