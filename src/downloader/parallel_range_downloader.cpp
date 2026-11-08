@@ -37,9 +37,11 @@ struct Body {
     const std::atomic_bool* failed{};
 };
 std::string trim(const std::string& v) {
-    const auto a=v.find_first_not_of(" \t\r\n");
+    const auto a=v.find_first_not_of(" \t\r
+");
     if(a==std::string::npos)return {};
-    return v.substr(a,v.find_last_not_of(" \t\r\n")-a+1);
+    return v.substr(a,v.find_last_not_of(" \t\r
+")-a+1);
 }
 size_t header_cb(char* p,size_t size,size_t count,void* opaque) {
     if(size&&count>std::numeric_limits<size_t>::max()/size)return 0;
@@ -202,7 +204,8 @@ ParallelRangeResult download_http_ranges(const ParallelRangeOptions& o) {
             if(!assembler.write_chunk(index,body.bytes.data(),body.bytes.size(),why)){set_error(why);return;}
             {
                 std::lock_guard<std::mutex> lock(manifest_mutex);
-                const auto checksum=crc32(body.bytes.data(),body.bytes.size());\n                if(!mark_resume_chunk_complete(manifest,index,why,checksum,true)||!save_resume_manifest(manifest_path,manifest,why)){set_error(why);return;}
+                const auto checksum=crc32(body.bytes.data(),body.bytes.size());
+                if(!mark_resume_chunk_complete(manifest,index,why,checksum,true)||!save_resume_manifest(manifest_path,manifest,why)){set_error(why);return;}
             }
             const auto now=received.fetch_add(body.bytes.size())+body.bytes.size();completed.fetch_add(1);
             if(t.progress){try{std::lock_guard<std::mutex> lock(progress_mutex);t.progress(now,probe.content_length);}catch(...){set_error("Progress callback failed.");return;}}
