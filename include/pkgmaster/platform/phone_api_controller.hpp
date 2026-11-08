@@ -18,7 +18,8 @@ class PhoneApiController {
 public:
     PhoneApiController(Queue& queue, DownloadCoordinator& downloads,
                        std::string downloads_directory,
-                       std::string library_index_path);
+                       std::string library_index_path,
+                       bool run_download_worker = true);
     ~PhoneApiController();
     PhoneApiController(const PhoneApiController&) = delete;
     PhoneApiController& operator=(const PhoneApiController&) = delete;
