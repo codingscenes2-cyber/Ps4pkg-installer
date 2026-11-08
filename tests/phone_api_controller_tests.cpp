@@ -8,11 +8,13 @@ int main() {
     const auto root = std::filesystem::temp_directory_path() / "pkgmaster-phone-api-tests";
     std::error_code ec;
     std::filesystem::remove_all(root, ec);
+    std::filesystem::create_directories(root / "usb0");
     pkgmaster::Queue queue;
     pkgmaster::DownloadCoordinator coordinator(queue);
     {
         pkgmaster::PhoneApiController api(queue, coordinator, (root / "downloads").string(),
-                                          (root / "library.idx").string(), false);
+                                          (root / "library.idx").string(), false,
+                                          {{"usb0", "USB Drive", (root / "usb0").string(), pkgmaster::StorageKind::Usb}});
         pkgmaster::PhoneHttpRequest request;
         pkgmaster::PhoneHttpResponse response;
         request.method = "GET";
