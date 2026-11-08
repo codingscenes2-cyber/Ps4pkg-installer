@@ -307,7 +307,7 @@ int main() {
                 }
                 if (pressed & ORBIS_PAD_BUTTON_DOWN) {
                     if (page == 0) selected = (selected + 1) % 4;
-                    else if (!packages.empty()) packageSelected =
+                    else if (page == 1 && !packages.empty()) packageSelected =
                         (packageSelected + 1) % static_cast<int>(packages.size());
                 }
                 if (pressed & ORBIS_PAD_BUTTON_CROSS) {
