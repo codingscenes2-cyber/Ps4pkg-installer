@@ -21,6 +21,18 @@
 #endif
 
 namespace pkgmaster {
+bool is_allowed_phone_request_host_origin(const PhoneHttpRequest& request,
+                                          const std::string& expected_host) {
+    if (expected_host.empty()) return false;
+    const auto host = request.headers.find("host");
+    if (host == request.headers.end() || lower(host->second) != lower(expected_host))
+        return false;
+    const auto origin = request.headers.find("origin");
+    if (origin != request.headers.end() &&
+        lower(origin->second) != lower("http://" + expected_host))
+        return false;
+    return true;
+}
 namespace {
 #if defined(_WIN32)
 using Socket = SOCKET;
@@ -44,6 +56,7 @@ std::string status_text(int status) {
         case 204: return "No Content";
         case 400: return "Bad Request";
         case 401: return "Unauthorized";
+        case 403: return "Forbidden";
         case 404: return "Not Found";
         case 405: return "Method Not Allowed";
         case 413: return "Payload Too Large";
@@ -217,6 +230,7 @@ bool PhoneLanServer::start(const std::string& address, std::uint16_t port,
         return false;
     }
     port_ = port;
+    expected_host_ = address + ":" + std::to_string(port);
     handler_ = std::move(handler);
     listen_socket_.store(static_cast<std::intptr_t>(socket_fd));
     running_.store(true);
@@ -255,6 +269,7 @@ void PhoneLanServer::stop() {
     auth_.revoke();
     handler_ = {};
     port_ = 0;
+    expected_host_.clear();
 #if defined(_WIN32)
     WSACleanup();
 #endif
@@ -307,6 +322,10 @@ void PhoneLanServer::handle_client(std::intptr_t client_fd) {
     std::string error;
     if (!parse_phone_http_request(bytes, {}, request, error)) {
         send_response(client, error_response(400, "invalid_request"));
+        return;
+    }
+    if (!is_allowed_phone_request_host_origin(request, expected_host_)) {
+        send_response(client, error_response(403, "host_or_origin_rejected"));
         return;
     }
     if (request.method == "GET" && (request.target == "/" || request.target == "/pair")) {
