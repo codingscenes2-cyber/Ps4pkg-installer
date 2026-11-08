@@ -72,7 +72,7 @@ bool PhoneServiceRuntime::start(const std::string& address, std::uint16_t port,
         }
     }
     auto controller = std::make_unique<PhoneApiController>(
-        queue_, downloads_, downloads_directory_, library_index_path_, true,
+        queue_, downloads_, downloads_directory_, library_index_path_, false,
         storage_candidates_);
     auto server = std::make_unique<PhoneLanServer>();
     std::string secret;
@@ -86,6 +86,10 @@ bool PhoneServiceRuntime::start(const std::string& address, std::uint16_t port,
     }
     std::string svg;
     if (!generate_phone_pairing_qr_svg(url, svg, error)) {
+        server->stop();
+        return false;
+    }
+    if (!controller->start_worker(error)) {
         server->stop();
         return false;
     }
