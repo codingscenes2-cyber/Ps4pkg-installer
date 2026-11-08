@@ -69,10 +69,14 @@ bool PhonePairingAuth::exchange(const std::string& supplied_secret,
                                 std::uint64_t now_ms,
                                 std::string& issued_session_token) {
     issued_session_token.clear();
-    if (!is_token(supplied_secret) || pairing_secret_.empty() || now_ms >= pairing_expires_ms_) {
+    if (!is_token(supplied_secret) || pairing_secret_.empty()) return false;
+    if (now_ms >= pairing_expires_ms_) {
         wipe(pairing_secret_);
-        wipe(session_token_);
-        pairing_expires_ms_ = session_expires_ms_ = 0;
+        pairing_expires_ms_ = 0;
+        if (!session_active_) {
+            wipe(session_token_);
+            session_expires_ms_ = 0;
+        }
         return false;
     }
     if (!constant_time_equal(pairing_secret_, supplied_secret)) return false;
