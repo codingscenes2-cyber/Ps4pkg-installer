@@ -37,11 +37,13 @@ int main() {
         request.body = "https://example.com/not-a-package.zip";
         assert(api.handle(request, response));
         assert(response.status == 400 && queue.snapshot().empty());
+        request.headers["x-pkgmaster-storage"] = "usb0";
         request.body = "https://example.com/a.pkg";
         assert(api.handle(request, response));
         assert(response.status == 201);
         const auto jobs = queue.snapshot();
         assert(jobs.size() == 1 && jobs[0].state == pkgmaster::JobState::Queued);
+        assert(jobs[0].local_path.find("usb0/PKGMaster/Downloads/1-a.pkg") != std::string::npos);
         request.method = "GET";
         request.target = "/api/v1/downloads";
         assert(api.handle(request, response));
