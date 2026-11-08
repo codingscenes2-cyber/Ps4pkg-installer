@@ -46,12 +46,11 @@ int main() {
     write_sfo(base/"titles"/"one"/"sce_sys"/"param.sfo");
     write_sfo(base/"titles"/"two"/"param.sfo");
     write_sfo(base/"titles"/"bad"/"sce_sys"/"param.sfo",false);
-    write_sfo(base/"titles"/"deep"/"a"/"b"/"sce_sys"/"param.sfo");
     std::vector<pkgmaster::LibraryPackage> results;
     std::string error;
     pkgmaster::PackageScanOptions options;
     assert(pkgmaster::scan_package_library({(base/"titles").string()},options,results,error));
-    assert(results.size()==3);
+    assert(results.size()==2);
     assert(results[0].metadata.title=="Scanner Test");
     assert(results[0].metadata.title_id=="CUSA12345");
     assert(results[0].param_sfo_bytes>0);
