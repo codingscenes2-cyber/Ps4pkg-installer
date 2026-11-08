@@ -124,12 +124,14 @@ int main() {
     setvbuf(stdout, nullptr, _IONBF, 0);
     DEBUGLOG << "Starting PKGMaster native UI";
 
-    Scene2D scene(kWidth, kHeight, kDepth);
-    if (!scene.Init(0xC000000, 2)) {
+    // Keep the graphics context alive for the full application process. The
+    // upstream sample declares a destructor but does not provide its body.
+    Scene2D* scene = new Scene2D(kWidth, kHeight, kDepth);
+    if (!scene->Init(0xC000000, 2)) {
         DEBUGLOG << "Video output initialization failed";
         for (;;) sceKernelUsleep(1000000);
     }
-    scene.SetActiveFrameBuffer(0);
+    scene->SetActiveFrameBuffer(0);
 
     bool controllerReady = false;
     int padHandle = -1;
@@ -176,10 +178,10 @@ int main() {
             }
         }
 
-        drawInterface(&scene, selected, status, controllerReady);
-        scene.SubmitFlip(frameId);
-        scene.FrameWait(frameId);
-        scene.FrameBufferSwap();
+        drawInterface(scene, selected, status, controllerReady);
+        scene->SubmitFlip(frameId);
+        scene->FrameWait(frameId);
+        scene->FrameBufferSwap();
         ++frameId;
     }
 
