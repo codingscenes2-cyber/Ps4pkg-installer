@@ -27,7 +27,13 @@ bool split(const std::string& s,std::vector<std::string>& f){
 bool validate_resume_manifest(const ResumeManifest& m,std::string& error){
  std::string url_error;
  if(!is_allowed_download_url(m.source_url,url_error)){error="Resume source URL is not allowed: "+url_error;return false;}
- if(m.entity_tag.empty()||m.entity_tag.rfind("W/",0)==0){error="A strong ETag is required before resuming partial bytes.";return false;}
+ if(m.entity_tag.size()<2||m.entity_tag.front()!='"'||m.entity_tag.back()!='"'){
+  error="A quoted strong ETag is required before resuming partial bytes.";return false;
+ }
+ for(std::size_t i=1;i+1<m.entity_tag.size();++i){
+  const unsigned char ch=static_cast<unsigned char>(m.entity_tag[i]);
+  if(ch<=0x20||ch=='"'||ch==0x7f){error="Resume manifest contains an invalid ETag.";return false;}
+ }
  if(m.total_bytes==0||m.chunks.empty()||m.chunks.size()>4096){error="Resume manifest has missing metadata or an invalid chunk count.";return false;}
  std::uint64_t cursor=0;
  for(const auto& c:m.chunks){
