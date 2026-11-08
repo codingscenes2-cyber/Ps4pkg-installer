@@ -1,4 +1,5 @@
 #pragma once
+#include "pkgmaster/downloader/download_metrics.hpp"
 #include <atomic>
 #include <cstdint>
 #include <functional>
@@ -13,9 +14,11 @@ struct HttpDownloadOptions {
     std::uint64_t maximum_bytes{50ull * 1024ull * 1024ull * 1024ull};
     long connect_timeout_ms{15000};
     long total_timeout_seconds{0};
+    std::uint64_t maximum_bytes_per_second{0}; // zero means unlimited
     bool overwrite{false};
     const std::atomic_bool* cancel{nullptr};
     std::function<void(std::uint64_t received, std::uint64_t total)> progress;
+    std::function<void(const DownloadMetrics&)> metrics;
 };
 
 struct HttpDownloadResult {
