@@ -30,6 +30,6 @@ if(PKGMASTER_BUILD_TESTS)
  add_test(NAME pkgmaster_core_tests COMMAND pkgmaster_tests)
  add_executable(pkgmaster_downloader_tests tests/downloader_tests.cpp)
  target_link_libraries(pkgmaster_downloader_tests PRIVATE pkgmaster_core)
- add_test(NAME pkgmaster_downloader_tests COMMAND pkgmaster_downloader_tests)
+ add_test(NAME pkgmaster_downloader_tests COMMAND pkgmaster_downloader_tests)\n add_executable(pkgmaster_resume_tests tests/resume_manifest_tests.cpp)\n target_link_libraries(pkgmaster_resume_tests PRIVATE pkgmaster_core)\n add_test(NAME pkgmaster_resume_tests COMMAND pkgmaster_resume_tests)
 endif()
 # Host portable core only. PS4 packaging must follow a verified OpenOrbis sample.
