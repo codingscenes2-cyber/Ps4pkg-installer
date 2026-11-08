@@ -9,6 +9,7 @@
 #include <iostream>
 #include <string>
 #include <thread>
+#include <utility>
 #include <vector>
 
 namespace {
@@ -57,6 +58,9 @@ int main(int argc, char** argv) {
         return 1;
     }
 
+    std::signal(SIGINT, handle_signal);
+    std::signal(SIGTERM, handle_signal);
+
     pkgmaster::Queue queue;
     pkgmaster::DownloadCoordinator downloads(queue);
     std::vector<pkgmaster::StorageCandidate> storage{
@@ -89,8 +93,6 @@ int main(int argc, char** argv) {
               << "Downloads: " << downloads_path.string() << '\n'
               << "Press Ctrl+C to stop safely and save the queue.\n";
 
-    std::signal(SIGINT, handle_signal);
-    std::signal(SIGTERM, handle_signal);
     while (!stop_requested && service.running())
         std::this_thread::sleep_for(std::chrono::milliseconds(250));
 
