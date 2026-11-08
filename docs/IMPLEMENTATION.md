@@ -100,3 +100,8 @@ Parallel range downloads now emit the same DownloadMetrics callback used by the 
 ## PARAM.SFO metadata parsing
 
 A bounded portable parser reads PSF/PARAM.SFO tables and extracts the common package fields TITLE, TITLE_ID, APP_VER, CATEGORY and SYSTEM_VER. It validates the PSF magic, table offsets, entry count, key termination, string lengths and data bounds before publishing parsed metadata. The parser does not validate package signatures, installability, minimum-firmware policy, or the authenticity of metadata. It is a library building block; recursive package discovery, installed-title reconciliation and UI integration remain future work.
+
+
+## Extracted package library scanner
+
+A bounded host-portable scanner now walks configured directory roots for extracted-title metadata at `sce_sys/param.sfo` (and optionally a root-level `param.sfo`). It does not recurse through symbolic links, skips inaccessible directories and malformed SFO files, enforces depth/directory/result limits, deduplicates metadata paths, and returns deterministic title-ID/path ordering. The scanner reads metadata only; it does not inspect or unpack `.pkg` archives, reconcile installed titles, or validate package signatures. The caller should provide trusted, readable roots and keep scan limits conservative on console storage.
