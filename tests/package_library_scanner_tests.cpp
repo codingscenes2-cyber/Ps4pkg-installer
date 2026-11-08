@@ -43,7 +43,7 @@ static std::vector<std::uint8_t> make_sfo() {
 }
 static void write_sfo(const fs::path& p, bool valid=true) {
     fs::create_directories(p.parent_path());
-    auto bytes=make_sfo(); if(!valid) bytes[0]=0;
+    auto bytes=make_sfo(); if(!valid) bytes[1]='X';
     std::ofstream out(p,std::ios::binary); out.write(reinterpret_cast<const char*>(bytes.data()),static_cast<std::streamsize>(bytes.size()));
 }
 int main() {
@@ -64,7 +64,6 @@ int main() {
     std::string error;
     pkgmaster::PackageScanOptions options;
     assert(pkgmaster::scan_package_library({(base/"titles").string()},options,results,error));
-    if(results.size()!=2) std::cerr<<"scanner returned "<<results.size()<<" results; error="<<error<<"\\n";
     assert(results.size()==2);
     assert(results[0].metadata.title=="Scanner Test");
     assert(results[0].metadata.title_id=="CUSA12345");
