@@ -18,8 +18,8 @@ See docs/COMPATIBILITY.md and docs/IMPLEMENTATION.md.
 | Download queue | Portable state model with pause/resume/retry/cancel |
 | Queue persistence | Versioned snapshot load/save; metadata only |
 | HTTP/HTTPS downloads | Single-stream libcurl transport, size cap, progress, cancellation, redirect refusal, temporary-file publish |
-| Multi-range downloads | Planner and response validation; parallel transport pending |
-| Crash-safe resume | Not implemented; partial transfers are discarded |
+| Multi-range downloads | Overflow-safe planner and strict range-response validation; parallel transport pending |
+| Resume metadata | Versioned atomic manifest stores ETag, total size and contiguous per-range completion; partial-file resume orchestration pending |
 | Phone submission | Static web UI; authenticated HTTP service pending |
 | QR pairing | API contract only; generation and session exchange pending |
 | Native PS4 UI/controller | Backend boundary only |
