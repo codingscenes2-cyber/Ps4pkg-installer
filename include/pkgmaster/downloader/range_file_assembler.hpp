@@ -1,6 +1,7 @@
 #pragma once
 #include "pkgmaster/downloader/range_plan.hpp"
 #include <cstddef>
+#include <cstdint>
 #include <fstream>
 #include <mutex>
 #include <string>
@@ -25,6 +26,7 @@ public:
     bool write_chunk(std::size_t index, const void* data, std::size_t bytes,
                      std::string& error);
     bool chunk_complete(std::size_t index) const;
+    bool verify_chunk_checksum(std::size_t index, std::uint32_t expected, std::string& error);
     bool complete() const;
     bool finalize(std::string& error);
     const std::string& temporary_path() const noexcept { return temporary_path_; }
