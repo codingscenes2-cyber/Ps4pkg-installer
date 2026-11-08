@@ -24,6 +24,7 @@ struct TransferContext {
     HttpDownloadResult* result{};
     bool write_failed{};
     bool too_large{};
+    DownloadSpeedTracker speed_tracker;
 };
 #if defined(__unix__) || defined(__APPLE__)
 bool is_public_address(const sockaddr* address) {
@@ -110,7 +111,8 @@ HttpDownloadResult download_http_file(const HttpDownloadOptions& options) {
         return result;
     }
     if (!options.maximum_bytes || options.connect_timeout_ms <= 0 ||
-        options.total_timeout_seconds < 0 ||\n        options.maximum_bytes_per_second > static_cast<std::uint64_t>(std::numeric_limits<std::int64_t>::max())) {
+        options.total_timeout_seconds < 0 ||
+        options.maximum_bytes_per_second > static_cast<std::uint64_t>(std::numeric_limits<std::int64_t>::max())) {
         result.error = "Invalid download limits or timeout settings.";
         return result;
     }
@@ -160,7 +162,9 @@ HttpDownloadResult download_http_file(const HttpDownloadOptions& options) {
     curl_easy_setopt(curl.get(), CURLOPT_FOLLOWLOCATION, 0L);
     curl_easy_setopt(curl.get(), CURLOPT_PROXY, "");
     curl_easy_setopt(curl.get(), CURLOPT_CONNECTTIMEOUT_MS, options.connect_timeout_ms);
-    curl_easy_setopt(curl.get(), CURLOPT_TIMEOUT, options.total_timeout_seconds);\n    if (options.maximum_bytes_per_second)\n        curl_easy_setopt(curl.get(), CURLOPT_MAX_RECV_SPEED_LARGE, static_cast<curl_off_t>(options.maximum_bytes_per_second));
+    curl_easy_setopt(curl.get(), CURLOPT_TIMEOUT, options.total_timeout_seconds);
+    if (options.maximum_bytes_per_second)
+        curl_easy_setopt(curl.get(), CURLOPT_MAX_RECV_SPEED_LARGE, static_cast<curl_off_t>(options.maximum_bytes_per_second));
     curl_easy_setopt(curl.get(), CURLOPT_NOSIGNAL, 1L);
     curl_easy_setopt(curl.get(), CURLOPT_SSL_VERIFYPEER, 1L);
     curl_easy_setopt(curl.get(), CURLOPT_SSL_VERIFYHOST, 2L);
