@@ -84,11 +84,14 @@ int report_progress(void* opaque, curl_off_t total, curl_off_t now,
                     curl_off_t, curl_off_t) {
     auto* ctx = static_cast<TransferContext*>(opaque);
     if (ctx->options->cancel && ctx->options->cancel->load()) return 1;
-    if (ctx->options->progress) {
+    if (ctx->options->progress || ctx->options->metrics) {
         const auto received = now > 0 ? static_cast<std::uint64_t>(now) : 0;
         const auto expected = total > 0 ? static_cast<std::uint64_t>(total) : 0;
-        try { ctx->options->progress(received, expected); }
-        catch (...) { return 1; }
+        try {
+            if (ctx->options->progress) ctx->options->progress(received, expected);
+            if (ctx->options->metrics)
+                ctx->options->metrics(ctx->speed_tracker.update(received, expected));
+        } catch (...) { return 1; }
     }
     return 0;
 }
@@ -107,7 +110,7 @@ HttpDownloadResult download_http_file(const HttpDownloadOptions& options) {
         return result;
     }
     if (!options.maximum_bytes || options.connect_timeout_ms <= 0 ||
-        options.total_timeout_seconds < 0) {
+        options.total_timeout_seconds < 0 ||\n        options.maximum_bytes_per_second > static_cast<std::uint64_t>(std::numeric_limits<std::int64_t>::max())) {
         result.error = "Invalid download limits or timeout settings.";
         return result;
     }
@@ -157,7 +160,7 @@ HttpDownloadResult download_http_file(const HttpDownloadOptions& options) {
     curl_easy_setopt(curl.get(), CURLOPT_FOLLOWLOCATION, 0L);
     curl_easy_setopt(curl.get(), CURLOPT_PROXY, "");
     curl_easy_setopt(curl.get(), CURLOPT_CONNECTTIMEOUT_MS, options.connect_timeout_ms);
-    curl_easy_setopt(curl.get(), CURLOPT_TIMEOUT, options.total_timeout_seconds);
+    curl_easy_setopt(curl.get(), CURLOPT_TIMEOUT, options.total_timeout_seconds);\n    if (options.maximum_bytes_per_second)\n        curl_easy_setopt(curl.get(), CURLOPT_MAX_RECV_SPEED_LARGE, static_cast<curl_off_t>(options.maximum_bytes_per_second));
     curl_easy_setopt(curl.get(), CURLOPT_NOSIGNAL, 1L);
     curl_easy_setopt(curl.get(), CURLOPT_SSL_VERIFYPEER, 1L);
     curl_easy_setopt(curl.get(), CURLOPT_SSL_VERIFYHOST, 2L);
