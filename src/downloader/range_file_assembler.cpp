@@ -79,7 +79,6 @@ bool RangeFileAssembler::create(const std::string& destination,
         return false;
     }
 
-    total_bytes_ = plan.total_bytes;
     overwrite_ = overwrite;
     completed_.assign(plan.parts.size(), false);
     plan_ = plan;
