@@ -31,6 +31,8 @@ int main(){
  assert(!pkgmaster::validate_resume_manifest(invalid,error));
  invalid=m;invalid.entity_tag="W/weak-tag";
  assert(!pkgmaster::validate_resume_manifest(invalid,error));
+ invalid=m;invalid.entity_tag="unquoted";
+ assert(!pkgmaster::validate_resume_manifest(invalid,error));
  invalid=m;invalid.source_url="http://127.0.0.1/private.pkg";
  assert(!pkgmaster::validate_resume_manifest(invalid,error));
  pkgmaster::ResumeManifest unchanged;unchanged.source_url="sentinel";
