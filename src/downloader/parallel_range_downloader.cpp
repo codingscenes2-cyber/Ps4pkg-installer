@@ -86,6 +86,10 @@ CURL* create_handle(const ParallelRangeOptions& o,const ByteRange& range,
     curl_easy_setopt(c,CURLOPT_FOLLOWLOCATION,0L);curl_easy_setopt(c,CURLOPT_PROXY,"");
     curl_easy_setopt(c,CURLOPT_CONNECTTIMEOUT_MS,o.transfer.connect_timeout_ms);
     curl_easy_setopt(c,CURLOPT_TIMEOUT,o.transfer.total_timeout_seconds);
+    if(o.transfer.maximum_bytes_per_second) {
+        const auto per_connection=std::max<std::uint64_t>(1,o.transfer.maximum_bytes_per_second/o.connections);
+        curl_easy_setopt(c,CURLOPT_MAX_RECV_SPEED_LARGE,static_cast<curl_off_t>(per_connection));
+    }
     curl_easy_setopt(c,CURLOPT_NOSIGNAL,1L);curl_easy_setopt(c,CURLOPT_SSL_VERIFYPEER,1L);
     curl_easy_setopt(c,CURLOPT_SSL_VERIFYHOST,2L);curl_easy_setopt(c,CURLOPT_USERAGENT,"PKGMaster/0.1");
     const std::string interval=std::to_string(range.first)+"-"+std::to_string(range.last);
@@ -112,7 +116,8 @@ ParallelRangeResult download_http_ranges(const ParallelRangeOptions& o) {
     const auto& t=o.transfer;
     if(t.url.empty()||t.destination_path.empty()||!t.maximum_bytes||
        t.connect_timeout_ms<=0||t.total_timeout_seconds<0||o.connections<2||
-       o.connections>8||!o.minimum_part_bytes){out.error="Invalid parallel download options.";return out;}
+       o.connections>8||!o.minimum_part_bytes||
+       t.maximum_bytes_per_second>static_cast<std::uint64_t>(std::numeric_limits<std::int64_t>::max())){out.error="Invalid parallel download options.";return out;}
     std::string policy_error;
     if(!is_allowed_download_url(t.url,policy_error)){out.error=policy_error;return out;}
 #ifndef PKGMASTER_HAS_CURL
@@ -181,6 +186,7 @@ ParallelRangeResult download_http_ranges(const ParallelRangeOptions& o) {
     std::atomic_uint completed{0};
     for(const auto& chunk:manifest.chunks)if(chunk.complete)completed.fetch_add(1);
     std::atomic_bool failed{false};
+    DownloadSpeedTracker speed_tracker;
     std::mutex error_mutex,progress_mutex,manifest_mutex;
     std::string first_error;
     auto set_error=[&](const std::string& error){failed=true;std::lock_guard<std::mutex> lock(error_mutex);if(first_error.empty())first_error=error;};
@@ -211,7 +217,11 @@ ParallelRangeResult download_http_ranges(const ParallelRangeOptions& o) {
                 if(!mark_resume_chunk_complete(manifest,index,why,checksum,true)||!save_resume_manifest(manifest_path,manifest,why)){set_error(why);return;}
             }
             const auto now=received.fetch_add(body.bytes.size())+body.bytes.size();completed.fetch_add(1);
-            if(t.progress){try{std::lock_guard<std::mutex> lock(progress_mutex);t.progress(now,probe.content_length);}catch(...){set_error("Progress callback failed.");return;}}
+            if(t.progress||t.metrics){try{
+                std::lock_guard<std::mutex> lock(progress_mutex);
+                if(t.progress)t.progress(now,probe.content_length);
+                if(t.metrics)t.metrics(speed_tracker.update(now,probe.content_length));
+            }catch(...){set_error("Progress callback failed.");return;}}
         }
     };
     std::vector<std::thread> threads;threads.reserve(o.connections);
