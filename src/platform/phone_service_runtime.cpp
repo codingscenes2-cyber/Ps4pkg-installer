@@ -39,7 +39,7 @@ bool PhoneServiceRuntime::start(const std::string& address, std::uint16_t port,
         error = "Phone service requires configured app-owned download and library paths";
         return false;
     }
-    if (!queue_snapshot_path_.empty()) {
+    if (!queue_snapshot_path_.empty() && !queue_initialized_) {
         std::error_code exists_error;
         const bool exists = std::filesystem::exists(queue_snapshot_path_, exists_error);
         if (exists_error) {
@@ -70,6 +70,7 @@ bool PhoneServiceRuntime::start(const std::string& address, std::uint16_t port,
                 return false;
             }
         }
+        queue_initialized_ = true;
     }
     auto controller = std::make_unique<PhoneApiController>(
         queue_, downloads_, downloads_directory_, library_index_path_, false,
@@ -98,6 +99,7 @@ bool PhoneServiceRuntime::start(const std::string& address, std::uint16_t port,
     pairing_qr_svg = std::move(svg);
     server_ = std::move(server);
     controller_ = std::move(controller);
+    started_ = true;
     return true;
 }
 
@@ -108,9 +110,10 @@ void PhoneServiceRuntime::stop() {
     }
     controller_.reset();
     persistence_error_.clear();
-    if (!queue_snapshot_path_.empty()) {
+    if (started_ && !queue_snapshot_path_.empty()) {
         QueueStore::save(queue_snapshot_path_, queue_.snapshot(), persistence_error_);
     }
+    started_ = false;
 }
 
 bool PhoneServiceRuntime::running() const noexcept {
