@@ -233,6 +233,7 @@ bool PhoneLanServer::start(const std::string& address, std::uint16_t port,
         return false;
     }
     port_ = port;
+    pairing_limiter_.reset();
     expected_host_ = address + ":" + std::to_string(port);
     handler_ = std::move(handler);
     listen_socket_.store(static_cast<std::intptr_t>(socket_fd));
@@ -273,6 +274,7 @@ void PhoneLanServer::stop() {
     }
     if (worker_.joinable()) worker_.join();
     auth_.revoke();
+    pairing_limiter_.reset();
     handler_ = {};
     port_ = 0;
     expected_host_.clear();
@@ -355,11 +357,20 @@ void PhoneLanServer::handle_client(std::intptr_t client_fd) {
             send_response(client, error_response(415, "pairing_requires_text_plain"));
             return;
         }
-        std::string token;
-        if (!auth_.exchange(request.body, now, token)) {
-            send_response(client, error_response(401, "pairing_code_invalid_or_expired"));
+        if (pairing_limiter_.blocked(now)) {
+            send_response(client, error_response(429, "pairing_temporarily_rate_limited"));
             return;
         }
+        std::string token;
+        if (!auth_.exchange(request.body, now, token)) {
+            pairing_limiter_.record_failure(now);
+            send_response(client, error_response(
+                pairing_limiter_.blocked(now) ? 429 : 401,
+                pairing_limiter_.blocked(now) ? "pairing_temporarily_rate_limited"
+                                              : "pairing_code_invalid_or_expired"));
+            return;
+        }
+        pairing_limiter_.record_success();
         PhoneHttpResponse response;
         response.status = 200;
         response.body = "{\"session_token\":\"" + token + "\"}";
