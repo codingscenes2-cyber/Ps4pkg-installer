@@ -71,6 +71,7 @@ int main() {
     options.max_depth=0;
     assert(pkgmaster::scan_package_library({(base/"titles").string()},options,results,error));
     assert(results.empty());
+    options.max_depth=8;
     options.max_directories=1;
     assert(!pkgmaster::scan_package_library({(base/"titles").string()},options,results,error));
     assert(error.find("limit")!=std::string::npos);
