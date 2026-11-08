@@ -1,6 +1,7 @@
 #include "pkgmaster/platform/phone_api_controller.hpp"
 #include "pkgmaster/core/url_policy.hpp"
 #include "pkgmaster/package/library_index_store.hpp"
+#include "pkgmaster/platform/storage.hpp"
 #include <algorithm>
 #include <cctype>
 #include <filesystem>
@@ -90,10 +91,12 @@ PhoneHttpResponse json_response(int status, const std::string& body) {
 PhoneApiController::PhoneApiController(Queue& queue, DownloadCoordinator& downloads,
                                        std::string downloads_directory,
                                        std::string library_index_path,
-                                       bool run_download_worker)
+                                       bool run_download_worker,
+                                       std::vector<StorageCandidate> storage_candidates)
     : queue_(queue), downloads_(downloads),
       downloads_directory_(std::move(downloads_directory)),
-      library_index_path_(std::move(library_index_path)) {
+      library_index_path_(std::move(library_index_path)),
+      storage_candidates_(std::move(storage_candidates)) {
     if (run_download_worker) {
         worker_ = std::thread(&PhoneApiController::worker_loop, this);
         for (const auto& job : queue_.snapshot())
@@ -198,10 +201,15 @@ bool PhoneApiController::handle(const PhoneHttpRequest& request, PhoneHttpRespon
         job.source_url = request.body;
         job.file_name = filename;
         const auto id = queue_.add(job);
-        const auto destination = std::filesystem::path(downloads_directory_) /
-                                 (std::to_string(id) + "-" + filename);
+        std::string destination;
+        if (!make_storage_child_path(downloads_directory_, std::to_string(id) + "-" + filename,
+                                     destination, reason)) {
+            queue_.cancel(id);
+            response = json_response(500, "{\"error\":\"unsafe_download_destination\"}");
+            return true;
+        }
         job = *queue_.get(id);
-        job.local_path = destination.string();
+        job.local_path = destination;
         if (!queue_.update(job)) {
             queue_.cancel(id);
             response = json_response(500, "{\"error\":\"could_not_store_download_job\"}");
@@ -248,6 +256,29 @@ bool PhoneApiController::handle(const PhoneHttpRequest& request, PhoneHttpRespon
             response = json_response(ok ? 200 : 409, ok ? "{\"state\":\"cancelled\"}" : "{\"error\":\"cancel_not_available\"}");
             return true;
         }
+    }
+    if (request.method == "GET" && path == "/api/v1/storage") {
+        std::vector<StorageVolume> volumes;
+        std::string error;
+        if (!discover_storage_volumes(storage_candidates_, volumes, error)) {
+            response = json_response(500, "{\"error\":\"storage_probe_failed\"}");
+            return true;
+        }
+        std::ostringstream body;
+        body << "{\"volumes\":[";
+        for (std::size_t i = 0; i < volumes.size(); ++i) {
+            if (i) body << ',';
+            const auto& volume = volumes[i];
+            body << "{\"id\":\"" << json_escape(volume.id)
+                 << "\",\"label\":\"" << json_escape(volume.label)
+                 << "\",\"kind\":\"" << storage_kind_name(volume.kind)
+                 << "\",\"total_bytes\":" << volume.total_bytes
+                 << ",\"available_bytes\":" << volume.available_bytes
+                 << ",\"writable\":" << (volume.writable ? "true" : "false") << "}";
+        }
+        body << "]}";
+        response = json_response(200, body.str());
+        return true;
     }
     if (request.method == "GET" && path == "/api/v1/library") {
         std::vector<LibraryPackage> packages;

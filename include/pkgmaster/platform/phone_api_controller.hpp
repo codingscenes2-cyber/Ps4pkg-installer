@@ -2,6 +2,7 @@
 #include "pkgmaster/core/queue.hpp"
 #include "pkgmaster/downloader/download_coordinator.hpp"
 #include "pkgmaster/platform/phone_lan_server.hpp"
+#include "pkgmaster/platform/storage.hpp"
 #include <atomic>
 #include <condition_variable>
 #include <cstdint>
@@ -19,7 +20,8 @@ public:
     PhoneApiController(Queue& queue, DownloadCoordinator& downloads,
                        std::string downloads_directory,
                        std::string library_index_path,
-                       bool run_download_worker = true);
+                       bool run_download_worker = true,
+                       std::vector<StorageCandidate> storage_candidates = {});
     ~PhoneApiController();
     PhoneApiController(const PhoneApiController&) = delete;
     PhoneApiController& operator=(const PhoneApiController&) = delete;
@@ -34,6 +36,7 @@ private:
     DownloadCoordinator& downloads_;
     std::string downloads_directory_;
     std::string library_index_path_;
+    std::vector<StorageCandidate> storage_candidates_;
     std::mutex mutex_;
     std::condition_variable condition_;
     std::deque<std::uint64_t> pending_;

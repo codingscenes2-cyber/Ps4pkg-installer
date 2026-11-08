@@ -66,3 +66,8 @@ The LAN listener now serves a small same-origin mobile web UI at \`/\` and \`/pa
 ## QR code generation
 
 The pairing URL can now be rendered locally as a self-contained SVG QR code using a vendored copy of Project Nayuki's C++ QR Code generator (MIT License; attribution and notice retained in `third_party/QR-Code-generator`). The wrapper uses quartile error correction, enforces a 512-byte payload cap, restricts render scale/quiet-zone bounds, and emits only static SVG geometry with a white quiet-zone background. Pairing payloads remain local to the console; no external QR service is contacted. The native PS4 UI still needs to call `make_phone_pairing_url` followed by `generate_phone_pairing_qr_svg` and display the returned SVG.
+
+
+## Storage discovery
+
+The portable storage adapter probes only caller-configured roots, such as the internal app data directory and USB mount points supplied by the platform startup layer. It reports capacity, available bytes and writability, skips missing/unmounted roots, rejects malformed or duplicate candidate IDs, and does not assume hard-coded Orbis mount paths. The phone API exposes volume IDs/labels/capacity but not mount paths. Download paths are derived from a sanitized filename under the configured download root through `make_storage_child_path`; clients cannot select arbitrary paths. The actual Orbis startup layer must supply verified mount candidates and choose the download root.
