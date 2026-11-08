@@ -6,15 +6,15 @@ CONTENT_ID  := IV0000-PKGM00001_00-PKGMASTER0000001
 TOOLCHAIN   := $(OO_PS4_TOOLCHAIN)
 INTDIR      := build
 SRC         := $(wildcard src/*.cpp)
-OBJS        := $(patsubst src/%.cpp,$(INTDIR)/%.o,$(SRC))
-LIBS        := -lc -lkernel -lc++
+OBJS        := $(patsubst src/%.cpp,$(INTDIR)/%.o,$(SRC)) $(INTDIR)/graphics.o
+LIBS        := -lc -lkernel -lc++ -lSceVideoOut -lScePad -lSceUserService
 TARGET      := $(CONTENT_ID).pkg
 BIN_DIR     := $(TOOLCHAIN)/bin/linux
 PKGTOOL     := $(BIN_DIR)/PkgTool.Core
 CREATE_FSELF:= $(BIN_DIR)/create-fself
 CREATE_GP4  := $(BIN_DIR)/create-gp4
 
-CXXFLAGS    := --target=x86_64-pc-freebsd12-elf -fPIC -funwind-tables -c -isysroot $(TOOLCHAIN) -isystem $(TOOLCHAIN)/include -isystem $(TOOLCHAIN)/include/c++/v1
+CXXFLAGS    := --target=x86_64-pc-freebsd12-elf -fPIC -funwind-tables -c -isysroot $(TOOLCHAIN) -isystem $(TOOLCHAIN)/include -isystem $(TOOLCHAIN)/include/c++/v1 -I$(TOOLCHAIN)/samples/_common
 LDFLAGS     := -m elf_x86_64 -pie --script $(TOOLCHAIN)/link.x --eh-frame-hdr -L$(TOOLCHAIN)/lib $(LIBS) $(TOOLCHAIN)/lib/crt1.o
 
 .PHONY: all clean check-toolchain
@@ -31,6 +31,9 @@ $(INTDIR):
 	mkdir -p $@
 
 $(INTDIR)/%.o: src/%.cpp | $(INTDIR) check-toolchain
+	clang++ $(CXXFLAGS) -o $@ $<
+
+$(INTDIR)/graphics.o: $(TOOLCHAIN)/samples/_common/graphics.cpp | $(INTDIR) check-toolchain
 	clang++ $(CXXFLAGS) -o $@ $<
 
 eboot.bin: $(OBJS) | check-toolchain
