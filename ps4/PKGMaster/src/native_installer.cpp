@@ -219,7 +219,7 @@ bool NativePackageInstaller::enqueueLocalPackage(
     taskId = -1;
     nativeError = 0;
 
-    if (path.empty() || expectedTitleId.empty() || packageSize < 0x20) {
+    if (path.empty() || packageSize < 0x20) {
         error = "Package path, title ID or file size is invalid.";
         return false;
     }
