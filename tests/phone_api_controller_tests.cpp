@@ -21,6 +21,10 @@ int main() {
         request.target = "/api/v1/status";
         assert(api.handle(request, response));
         assert(response.status == 200 && response.body.find("PKGMaster") != std::string::npos);
+        request.target = "/api/v1/storage";
+        assert(api.handle(request, response) && response.status == 200);
+        assert(response.body.find("USB Drive") != std::string::npos);
+        assert(response.body.find(root.string()) == std::string::npos);
         request.target = "/api/v1/downloads";
         assert(api.handle(request, response));
         assert(response.status == 200 && response.body == "{\"downloads\":[]}");
