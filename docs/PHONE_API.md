@@ -71,3 +71,8 @@ The pairing URL can now be rendered locally as a self-contained SVG QR code usin
 ## Storage discovery
 
 The portable storage adapter probes only caller-configured roots, such as the internal app data directory and USB mount points supplied by the platform startup layer. It reports capacity, available bytes and writability, skips missing/unmounted roots, rejects malformed or duplicate candidate IDs, and does not assume hard-coded Orbis mount paths. The phone API exposes volume IDs/labels/capacity but not mount paths. Download paths are derived from a sanitized filename under the configured download root through `make_storage_child_path`; clients cannot select arbitrary paths. The actual Orbis startup layer must supply verified mount candidates and choose the download root.
+
+
+## Phone service lifecycle integration
+
+`PhoneServiceRuntime` is the composition/lifetime owner for the phone experience. It creates the API controller and its download worker, starts the LAN listener with the controller handler, generates the one-time pairing URL and local QR SVG, and publishes the runtime only after all startup steps succeed. `stop()` first closes and joins the server worker, then destroys the controller so no request can outlive its handler. Startup is explicit and requires a caller-supplied private IPv4 address, port, download directory and library index path. It does not discover or guess the console's active LAN interface. The platform app startup/UI layer should call `start`, display the returned QR SVG, and call `stop` on shutdown or when the user disables phone access.
