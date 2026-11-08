@@ -11,6 +11,7 @@
 #include "log.h"
 #include "pkg_scanner.hpp"
 #include "pkg_inspector.hpp"
+#include "native_installer.hpp"
 
 static constexpr int kWidth = 1920;
 static constexpr int kHeight = 1080;
@@ -185,7 +186,7 @@ static void drawLibrary(Scene2D* scene, const std::vector<PackageEntry>& package
              controllerReady ? "D-PAD SELECT   X MARK PKG   O BACK   TRIANGLE RESCAN"
                               : "CONTROLLER NOT READY",
              muted, 2);
-    drawText(scene, 110, 1055, "INSTALL HANDOFF IS NOT ENABLED IN THIS BUILD",
+    drawText(scene, 110, 1055, "CROSS: INSTALL   CIRCLE: BACK TO PACKAGE LIST",
              muted, 2);
 }
 
@@ -251,6 +252,85 @@ static void drawDetails(Scene2D* scene, const PackageEntry& package,
              muted, 2);
 }
 
+static void drawInstallConfirm(Scene2D* scene, const PackageEntry& package,
+                               const pkgmaster::PackageMetadata& metadata,
+                               const std::string& status, bool controllerReady) {
+    const Color background{12, 18, 30};
+    const Color panel{22, 32, 49};
+    const Color cyan{56, 218, 205};
+    const Color white{235, 242, 250};
+    const Color muted{139, 158, 180};
+    scene->FrameBufferFill(background);
+    scene->DrawRectangle(0, 0, kWidth, 132, panel);
+    scene->DrawRectangle(0, 126, kWidth, 7, cyan);
+    drawText(scene, 112, 42, "PKGMASTER", cyan, 9);
+    drawText(scene, 1160, 68, "INSTALL CONFIRMATION", muted, 3);
+    scene->DrawRectangle(110, 235, 1700, 620, panel);
+    drawText(scene, 160, 290, "READY TO SUBMIT PACKAGE TO PS4", white, 4);
+    drawText(scene, 160, 390, package.name.substr(0, 52).c_str(), cyan, 4);
+    drawText(scene, 160, 490, "TITLE ID", muted, 3);
+    drawText(scene, 430, 490,
+             metadata.title_id.empty() ? "UNKNOWN" : metadata.title_id.c_str(),
+             white, 3);
+    drawText(scene, 160, 555, "TITLE", muted, 3);
+    drawText(scene, 430, 555,
+             metadata.title.empty() ? "UNKNOWN" : metadata.title.substr(0, 44).c_str(),
+             white, 3);
+    drawText(scene, 160, 650, "THE PS4 BGFT SERVICE WILL HANDLE THE INSTALL TASK.", white, 2);
+    drawText(scene, 160, 700, "ONLY INSTALL PACKAGES YOU OWN OR ARE AUTHORIZED TO USE.", muted, 2);
+    drawText(scene, 160, 775, status.substr(0, 88).c_str(), cyan, 2);
+    drawText(scene, 110, 1015,
+             controllerReady ? "CROSS: CONFIRM INSTALL   CIRCLE: CANCEL"
+                              : "CONTROLLER NOT READY",
+             muted, 3);
+}
+
+static void drawInstallProgress(Scene2D* scene, const PackageEntry& package,
+                                uint64_t transferred, uint64_t total,
+                                int32_t preparingPercent, int32_t localCopyPercent,
+                                bool complete, bool failed,
+                                const std::string& status, bool controllerReady) {
+    const Color background{12, 18, 30};
+    const Color panel{22, 32, 49};
+    const Color panelAlt{28, 42, 62};
+    const Color cyan{56, 218, 205};
+    const Color white{235, 242, 250};
+    const Color muted{139, 158, 180};
+    scene->FrameBufferFill(background);
+    scene->DrawRectangle(0, 0, kWidth, 132, panel);
+    scene->DrawRectangle(0, 126, kWidth, 7, cyan);
+    drawText(scene, 112, 42, "PKGMASTER", cyan, 9);
+    drawText(scene, 1160, 68, "INSTALL TASK", muted, 3);
+    scene->DrawRectangle(110, 235, 1700, 620, panel);
+    drawText(scene, 160, 290, package.name.substr(0, 52).c_str(), white, 4);
+
+    int percent = 0;
+    if (total != 0) {
+        const uint64_t bounded = transferred > total ? total : transferred;
+        percent = static_cast<int>((bounded * 100u) / total);
+    }
+    char progressText[128];
+    std::snprintf(progressText, sizeof(progressText),
+                  "TRANSFER %d PCT  PREPARE %d  FINALIZE %d",
+                  percent, preparingPercent, localCopyPercent);
+    drawText(scene, 160, 405, progressText, cyan, 3);
+    scene->DrawRectangle(160, 470, 1500, 34, panelAlt);
+    const int barWidth = percent > 0 ? (1500 * percent) / 100 : 0;
+    if (barWidth > 0) scene->DrawRectangle(160, 470, barWidth, 34, cyan);
+
+    const char* state = failed ? "TASK FAILED - SEE ERROR BELOW"
+                      : complete ? "TRANSFER COMPLETE - CHECK PS4 NOTIFICATIONS"
+                                 : "PS4 PACKAGE SERVICE IS PROCESSING THE TASK";
+    drawText(scene, 160, 570, state, white, 3);
+    drawText(scene, 160, 665, status.substr(0, 90).c_str(), muted, 2);
+    drawText(scene, 160, 730, "TRANSFER COMPLETE DOES NOT GUARANTEE FINAL INSTALL SUCCESS.", muted, 2);
+    drawText(scene, 110, 1015,
+             (controllerReady && (complete || failed))
+                 ? "CIRCLE: RETURN TO PACKAGE DETAILS"
+                 : "INSTALL TASK ACTIVE - PLEASE WAIT",
+             muted, 3);
+}
+
 int main() {
     setvbuf(stdout, nullptr, _IONBF, 0);
     DEBUGLOG << "Starting PKGMaster native UI";
@@ -290,6 +370,14 @@ int main() {
     pkgmaster::PackageMetadata selectedMetadata;
     std::string metadataError;
     std::string status = "BOOTED - SELECT PACKAGE LIBRARY TO SCAN USB STORAGE";
+    pkgmaster::NativePackageInstaller installer;
+    int installTaskId = -1;
+    uint64_t installTransferred = 0;
+    uint64_t installTotal = 0;
+    int32_t installPreparing = 0;
+    int32_t installLocalCopy = 0;
+    bool installComplete = false;
+    bool installFailed = false;
     int frameId = 0;
 
     for (;;) {
@@ -330,12 +418,51 @@ int main() {
                             status = "PACKAGE METADATA COULD NOT BE READ";
                         }
                         page = 2;
+                    } else if (page == 2 && !packages.empty()) {
+                        if (!metadataError.empty() || selectedMetadata.title_id.empty()) {
+                            status = "CANNOT INSTALL - VALID PARAM SFO TITLE ID REQUIRED";
+                        } else {
+                            status = "REVIEW PACKAGE DETAILS BEFORE INSTALLING";
+                            page = 3;
+                        }
+                    } else if (page == 3 && !packages.empty()) {
+                        installTaskId = -1;
+                        installTransferred = 0;
+                        installTotal = packages[packageSelected].sizeBytes;
+                        installPreparing = 0;
+                        installLocalCopy = 0;
+                        installComplete = false;
+                        installFailed = false;
+                        int32_t nativeError = 0;
+                        if (installer.enqueueLocalPackage(
+                                packages[packageSelected].path,
+                                packages[packageSelected].name,
+                                selectedMetadata.title_id,
+                                packages[packageSelected].sizeBytes,
+                                installTaskId, status, nativeError)) {
+                            page = 4;
+                            status = "INSTALL TASK SUBMITTED - MONITORING BGFT";
+                        } else {
+                            installFailed = true;
+                            if (nativeError != 0) {
+                                char code[32];
+                                std::snprintf(code, sizeof(code), " [0x%08X]",
+                                              static_cast<unsigned>(nativeError));
+                                status += code;
+                            }
+                        }
                     }
                 }
                 if (pressed & ORBIS_PAD_BUTTON_CIRCLE) {
-                    if (page == 2) {
-                        page = 1;
-                        status = "RETURNED TO USB PACKAGE LIST";
+                    if (page == 4) {
+                        if (installComplete || installFailed) {
+                            page = 2;
+                            status = "RETURNED TO PACKAGE DETAILS";
+                        }
+                    } else if (page == 3 || page == 2) {
+                        page = (page == 3) ? 2 : 1;
+                        status = (page == 2) ? "RETURNED TO PACKAGE DETAILS"
+                                             : "RETURNED TO USB PACKAGE LIST";
                     } else if (page == 1) {
                         page = 0;
                         status = "RETURNED TO MAIN MENU";
@@ -352,6 +479,27 @@ int main() {
             }
         }
 
+        if (page == 4 && !installComplete && !installFailed && frameId % 30 == 0) {
+            int32_t taskError = 0;
+            int32_t nativeError = 0;
+            if (!installer.readProgress(installTaskId, installTransferred,
+                                        installTotal, installPreparing,
+                                        installLocalCopy, taskError,
+                                        status, nativeError)) {
+                installFailed = true;
+            } else if (taskError != 0) {
+                char code[64];
+                std::snprintf(code, sizeof(code), "BGFT TASK ERROR 0x%08X",
+                              static_cast<unsigned>(taskError));
+                status = code;
+                installFailed = true;
+            } else if (installTotal != 0 && installTransferred >= installTotal &&
+                       installPreparing >= 100 && installLocalCopy >= 100) {
+                installComplete = true;
+                status = "BGFT TRANSFER FINISHED - VERIFY PS4 SYSTEM RESULT";
+            }
+        }
+
         if (page == 0) {
             drawInterface(scene, selected, status, controllerReady);
         } else if (page == 1) {
@@ -359,6 +507,13 @@ int main() {
         } else if (page == 2 && !packages.empty()) {
             drawDetails(scene, packages[packageSelected], selectedMetadata,
                         metadataError, status, controllerReady);
+        } else if (page == 3 && !packages.empty()) {
+            drawInstallConfirm(scene, packages[packageSelected], selectedMetadata,
+                               status, controllerReady);
+        } else if (page == 4 && !packages.empty()) {
+            drawInstallProgress(scene, packages[packageSelected], installTransferred,
+                                installTotal, installPreparing, installLocalCopy,
+                                installComplete, installFailed, status, controllerReady);
         }
 
         scene->SubmitFlip(frameId);
