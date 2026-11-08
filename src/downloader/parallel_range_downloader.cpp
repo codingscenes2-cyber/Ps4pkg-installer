@@ -5,6 +5,7 @@
 #include "pkgmaster/downloader/resume_manifest.hpp"
 #include "pkgmaster/core/url_policy.hpp"
 #include "pkgmaster/core/crc32.hpp"
+#include "pkgmaster/core/sha256.hpp"
 #include <atomic>
 #include <cstdio>
 #include <cstdlib>
@@ -117,7 +118,7 @@ ParallelRangeResult download_http_ranges(const ParallelRangeOptions& o) {
     if(t.url.empty()||t.destination_path.empty()||!t.maximum_bytes||
        t.connect_timeout_ms<=0||t.total_timeout_seconds<0||o.connections<2||
        o.connections>8||!o.minimum_part_bytes||
-       t.maximum_bytes_per_second>static_cast<std::uint64_t>(std::numeric_limits<std::int64_t>::max())){out.error="Invalid parallel download options.";return out;}
+       t.maximum_bytes_per_second>static_cast<std::uint64_t>(std::numeric_limits<std::int64_t>::max())||\n       (!t.expected_sha256.empty()&&!is_sha256_hex(t.expected_sha256))){out.error="Invalid parallel download options.";return out;}
     std::string policy_error;
     if(!is_allowed_download_url(t.url,policy_error)){out.error=policy_error;return out;}
 #ifndef PKGMASTER_HAS_CURL
@@ -232,8 +233,20 @@ ParallelRangeResult download_http_ranges(const ParallelRangeOptions& o) {
     if(t.cancel&&t.cancel->load()){out.status=DownloadStatus::Cancelled;out.error="Download cancelled. Completed ranges and manifest were retained for restart.";}
     else if(failed.load()){out.error=first_error.empty()?"Parallel range download failed.":first_error;}
     else if(completed.load()!=plan.parts.size()){out.error="Parallel range download ended before every part completed.";}
-    else if(!assembler.finalize(out.error)){}
-    else{std::remove(manifest_path.c_str());out.status=DownloadStatus::Completed;return out;}
+    else {
+        if(!t.expected_sha256.empty()) {
+            std::string actual,hash_error;
+            if(!sha256_file(assembler.temporary_path(),actual,hash_error))out.error=hash_error;
+            else {
+                std::string expected=t.expected_sha256;
+                std::transform(expected.begin(),expected.end(),expected.begin(),[](unsigned char c){return static_cast<char>(std::tolower(c));});
+                if(actual!=expected)out.error="Downloaded file SHA-256 does not match the trusted expected digest.";
+            }
+        }
+        if(out.error.empty()&&assembler.finalize(out.error)) {
+            std::remove(manifest_path.c_str());out.status=DownloadStatus::Completed;return out;
+        }
+    }
     return out;
 #endif
 }
