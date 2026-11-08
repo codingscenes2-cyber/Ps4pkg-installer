@@ -3,7 +3,7 @@ namespace pkgmaster {
 bool can_transition(JobState from,JobState to) noexcept {
  if(from==to)return true;
  switch(from){
- case JobState::Queued:return to==JobState::Resolving||to==JobState::Cancelled||to==JobState::Failed;
+ case JobState::Queued:return to==JobState::Resolving||to==JobState::Paused||to==JobState::Cancelled||to==JobState::Failed;
  case JobState::Resolving:return to==JobState::Downloading||to==JobState::Paused||to==JobState::Cancelled||to==JobState::Failed;
  case JobState::Downloading:return to==JobState::Verifying||to==JobState::Paused||to==JobState::Cancelled||to==JobState::Failed;
  case JobState::Paused:return to==JobState::Resolving||to==JobState::Downloading||to==JobState::Cancelled||to==JobState::Failed;

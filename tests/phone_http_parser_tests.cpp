@@ -29,6 +29,8 @@ int main() {
         assert(request.method == unchanged.method && request.body == unchanged.body);
     }
     pkgmaster::PhoneHttpParseLimits limits;
+    assert(pkgmaster::parse_phone_http_request("DELETE /api/v1/downloads/1 HTTP/1.1\r\nHost: ps4\r\n\r\n", {}, request, error));
+    assert(request.method == "DELETE");
     limits.max_body_bytes = 2;
     assert(!pkgmaster::parse_phone_http_request(post, limits, request, error));
     limits = {};

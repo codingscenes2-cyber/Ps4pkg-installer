@@ -17,7 +17,7 @@ struct PhoneHttpParseLimits {
     std::size_t max_body_bytes{64 * 1024};
     std::size_t max_headers{32};
 };
-// Parses one complete HTTP/1.1 request. Supports GET and POST only, rejects
+// Parses one complete HTTP/1.1 request. Supports GET, POST and DELETE only, rejects
 // transfer encoding and pipelined/trailing bytes. Output is unchanged on failure.
 bool parse_phone_http_request(const std::string& bytes,
                               const PhoneHttpParseLimits& limits,
