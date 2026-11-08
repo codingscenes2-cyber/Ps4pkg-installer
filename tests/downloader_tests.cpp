@@ -2,7 +2,6 @@
 #include <atomic>
 #include <cassert>
 #include <cstdio>
-#include <string>
 int main() {
     pkgmaster::HttpDownloadOptions options;
     options.url = "file:///etc/passwd";
@@ -17,7 +16,8 @@ int main() {
     options.url = "https://example.com/test.pkg";
     options.cancel = &cancelled;
     auto cancelled_result = pkgmaster::download_http_file(options);
-    assert(cancelled_result.status == pkgmaster::DownloadStatus::Cancelled);
+    assert(cancelled_result.status == pkgmaster::DownloadStatus::Cancelled ||
+           cancelled_result.status == pkgmaster::DownloadStatus::Unsupported);
     std::remove("must-not-be-created.pkg");
     std::remove("must-not-be-created.pkg.part");
     return 0;

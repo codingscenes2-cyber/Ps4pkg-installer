@@ -12,7 +12,7 @@ struct HttpDownloadOptions {
     std::string destination_path;
     std::uint64_t maximum_bytes{50ull * 1024ull * 1024ull * 1024ull};
     long connect_timeout_ms{15000};
-    long total_timeout_seconds{0}; // zero means no overall timeout
+    long total_timeout_seconds{0};
     bool overwrite{false};
     const std::atomic_bool* cancel{nullptr};
     std::function<void(std::uint64_t received, std::uint64_t total)> progress;
@@ -27,6 +27,6 @@ struct HttpDownloadResult {
 };
 
 // Single-stream HTTP/HTTPS transfer. Redirects are deliberately rejected:
-// callers must validate each redirect target before a later implementation follows it.
+// each redirect hop must be revalidated before a later implementation follows it.
 HttpDownloadResult download_http_file(const HttpDownloadOptions& options);
 }
