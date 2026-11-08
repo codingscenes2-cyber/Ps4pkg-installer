@@ -13,6 +13,18 @@ int main() {
     assert(!PhoneLanServer::is_private_lan_ipv4("0.0.0.0"));
     assert(!PhoneLanServer::is_private_lan_ipv4("169.254.1.1"));
     assert(!PhoneLanServer::is_private_lan_ipv4("8.8.8.8"));
+    pkgmaster::PhoneHttpRequest request;
+    request.headers["host"] = "192.168.1.20:8080";
+    assert(pkgmaster::is_allowed_phone_request_host_origin(request, "192.168.1.20:8080"));
+    request.headers["origin"] = "http://192.168.1.20:8080";
+    assert(pkgmaster::is_allowed_phone_request_host_origin(request, "192.168.1.20:8080"));
+    request.headers["origin"] = "http://attacker.example";
+    assert(!pkgmaster::is_allowed_phone_request_host_origin(request, "192.168.1.20:8080"));
+    request.headers.erase("origin");
+    request.headers["host"] = "attacker.example";
+    assert(!pkgmaster::is_allowed_phone_request_host_origin(request, "192.168.1.20:8080"));
+    request.headers.erase("host");
+    assert(!pkgmaster::is_allowed_phone_request_host_origin(request, "192.168.1.20:8080"));
     PhoneLanServer server;
     std::string secret, error;
     assert(!server.start("127.0.0.1", 8080, secret, error));
