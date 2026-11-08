@@ -46,6 +46,19 @@ jobs:
           find "$SDK_ROOT/bin/linux" -maxdepth 1 -type f -printf '%f\n' | sort
           chmod +x "$SDK_ROOT"/bin/linux/*
 
+      - name: Provide isolated OpenSSL 1.1 compatibility for legacy PkgTool.Core
+        run: |
+          set -euo pipefail
+          echo "deb [arch=amd64] https://security.ubuntu.com/ubuntu focal-security main" | sudo tee /etc/apt/sources.list.d/focal-ssl-compat.list
+          sudo apt-get update
+          mkdir -p "$RUNNER_TEMP/openssl11-deb" "$RUNNER_TEMP/openssl11"
+          cd "$RUNNER_TEMP/openssl11-deb"
+          apt-get download libssl1.1=1.1.1f-1ubuntu2.24
+          dpkg-deb -x libssl1.1_1.1.1f-1ubuntu2.24_amd64.deb "$RUNNER_TEMP/openssl11"
+          echo "LD_LIBRARY_PATH=$RUNNER_TEMP/openssl11/usr/lib/x86_64-linux-gnu" >> "$GITHUB_ENV"
+          test -s "$RUNNER_TEMP/openssl11/usr/lib/x86_64-linux-gnu/libssl.so.1.1"
+          test -s "$RUNNER_TEMP/openssl11/usr/lib/x86_64-linux-gnu/libcrypto.so.1.1"
+
       - name: Generate package icon
         run: python3 ps4/PKGMaster/tools/make_icon.py
 
