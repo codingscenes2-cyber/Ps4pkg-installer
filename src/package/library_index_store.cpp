@@ -93,11 +93,24 @@ bool PackageLibraryIndexStore::save(const std::string& path,
         }
     }
     const std::string temporary = path + ".tmp";
+    std::uint64_t projected_bytes = std::string("PKGMASTER_LIBRARY\\t1\\n").size();
     {
         std::ofstream out(temporary, std::ios::binary | std::ios::trunc);
         if (!out) { error = "Cannot open temporary package index"; return false; }
         out << "PKGMASTER_LIBRARY\t1\n";
         for (const auto& item : sorted) {
+            const std::string* values[] = {&item.metadata.title, &item.metadata.title_id,
+                &item.metadata.app_version, &item.metadata.category,
+                &item.metadata.system_version, &item.package_path, &item.param_sfo_path};
+            std::uint64_t record_bytes = std::to_string(item.param_sfo_bytes).size() + 9;
+            for (const auto* value : values) record_bytes += static_cast<std::uint64_t>(value->size()) * 2;
+            if (record_bytes > kMaxIndexBytes - projected_bytes) {
+                error = "Package index exceeds the size limit";
+                out.close();
+                std::remove(temporary.c_str());
+                return false;
+            }
+            projected_bytes += record_bytes;
             out << item.param_sfo_bytes << '\t'
                 << encode(item.metadata.title) << '\t'
                 << encode(item.metadata.title_id) << '\t'
