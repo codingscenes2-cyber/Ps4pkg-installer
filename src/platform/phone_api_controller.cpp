@@ -191,8 +191,25 @@ bool PhoneApiController::handle(const PhoneHttpRequest& request, PhoneHttpRespon
             response = json_response(400, "{\"error\":\"url_must_end_in_pkg_filename\"}");
             return true;
         }
+        std::string destination_root = downloads_directory_;
+        const auto selected_storage = request.headers.find("x-pkgmaster-storage");
+        if (selected_storage != request.headers.end() && !selected_storage->second.empty()) {
+            std::vector<StorageVolume> volumes;
+            if (!discover_storage_volumes(storage_candidates_, volumes, reason)) {
+                response = json_response(500, "{\"error\":\"storage_probe_failed\"}");
+                return true;
+            }
+            const auto selected = std::find_if(volumes.begin(), volumes.end(), [&](const StorageVolume& volume) {
+                return volume.id == selected_storage->second;
+            });
+            if (selected == volumes.end() || !selected->writable) {
+                response = json_response(409, "{\"error\":\"selected_storage_unavailable_or_read_only\"}");
+                return true;
+            }
+            destination_root = (std::filesystem::path(selected->path) / "PKGMaster" / "Downloads").string();
+        }
         std::error_code ec;
-        std::filesystem::create_directories(downloads_directory_, ec);
+        std::filesystem::create_directories(destination_root, ec);
         if (ec) {
             response = json_response(500, "{\"error\":\"download_directory_unavailable\"}");
             return true;
@@ -202,7 +219,7 @@ bool PhoneApiController::handle(const PhoneHttpRequest& request, PhoneHttpRespon
         job.file_name = filename;
         const auto id = queue_.add(job);
         std::string destination;
-        if (!make_storage_child_path(downloads_directory_, std::to_string(id) + "-" + filename,
+        if (!make_storage_child_path(destination_root, std::to_string(id) + "-" + filename,
                                      destination, reason)) {
             queue_.cancel(id);
             response = json_response(500, "{\"error\":\"unsafe_download_destination\"}");
