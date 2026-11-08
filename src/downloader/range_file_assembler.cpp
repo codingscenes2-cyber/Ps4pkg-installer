@@ -200,6 +200,17 @@ bool RangeFileAssembler::verify_chunk_checksum(std::size_t index,
     return true;
 }
 
+bool RangeFileAssembler::invalidate_chunk(std::size_t index, std::string& error) {
+    std::lock_guard<std::mutex> lock(mutex_);
+    if (!initialized_ || published_ || index >= completed_.size()) {
+        error = "Cannot invalidate an unknown or published range.";
+        return false;
+    }
+    completed_[index] = false;
+    error.clear();
+    return true;
+}
+
 bool RangeFileAssembler::complete() const {
     std::lock_guard<std::mutex> lock(mutex_);
     if (!initialized_ || completed_.empty()) return false;
