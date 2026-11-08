@@ -86,3 +86,8 @@ The portable storage adapter probes only caller-configured roots, such as the in
 ## Host and Origin checks
 
 The listener records its exact configured IPv4-and-port authority and validates every parsed request's `Host` header against it before serving the UI, pairing endpoint or authenticated API. If a browser supplies an `Origin` header, it must match the same `http://address:port` origin; missing Origin remains accepted for non-browser HTTP clients, while the mandatory exact Host check still applies. This reduces DNS-rebinding and cross-origin browser request exposure but is not a substitute for TLS or a trusted isolated LAN.
+
+
+## Request read deadline
+
+Each accepted client connection has a 2-second socket read timeout and a 10-second absolute request-read deadline. The deadline applies across the complete header and body rather than resetting whenever another byte arrives, limiting slow-drip clients from occupying the single-client listener indefinitely. Existing total request, header and body byte caps remain enforced by the receiver and parser.
