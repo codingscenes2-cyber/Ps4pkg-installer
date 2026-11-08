@@ -37,7 +37,7 @@ footer{color:#8493a8;font-size:12px;margin-top:20px;line-height:1.5}
 <body><main>
 <header><div class="logo">PKG</div><div><h1>PKGMaster</h1><div class="muted">Local console companion</div></div><span class="badge" id="connection">Not paired</span></header>
 <div id="message" role="status" aria-live="polite">Pair this phone using the one-time link displayed by your console.</div>
-<section class="panel"><h2>Add a package download</h2><form id="download-form"><input id="package-url" type="url" placeholder="https://host.example/game.pkg" autocomplete="url" required><button type="submit">Add download</button></form><div class="muted" style="margin-top:9px">Only .pkg downloads are accepted. Files are saved in the console's configured download folder.</div></section>
+<section class="panel"><h2>Add a package download</h2><form id="download-form"><input id="package-url" type="url" placeholder="https://host.example/game.pkg" autocomplete="url" required><select id="storage-choice" aria-label="Download storage"><option value="">Default storage</option></select><button type="submit">Add download</button></form><div class="muted" style="margin-top:9px">Only .pkg downloads are accepted. Files are saved in the console's configured download folder.</div></section>
 <section class="panel"><h2>Downloads</h2><div id="downloads" class="empty">Waiting for connection…</div></section>
 <section class="panel"><h2>Storage</h2><div id="storage" class="empty">Waiting for connection…</div></section>
 <section class="panel"><h2>Package library</h2><div id="library" class="empty">Waiting for connection…</div></section>
@@ -131,7 +131,14 @@ const std::string& phone_web_ui_javascript() {
       root.className = "empty"; root.textContent = "No configured storage volumes are currently available."; return;
     }
     root.className = "";
+    const choice = $("storage-choice");
+    const selected = choice.value;
+    choice.replaceChildren();
+    const defaultOption = document.createElement("option"); defaultOption.value = ""; defaultOption.textContent = "Default storage"; choice.append(defaultOption);
     for (const volume of data.volumes) {
+      const option = document.createElement("option"); option.value = volume.id;
+      option.textContent = (volume.label || volume.id) + (volume.writable ? "" : " (read-only)");
+      option.disabled = !volume.writable; choice.append(option);
       const row = document.createElement("div"); row.className = "item";
       const info = document.createElement("div");
       const title = document.createElement("div"); title.className = "item-title";
@@ -140,6 +147,7 @@ const std::string& phone_web_ui_javascript() {
       meta.textContent = volume.kind + " · " + formatBytes(volume.available_bytes) + " free of " + formatBytes(volume.total_bytes) + " · " + (volume.writable ? "writable" : "read-only");
       info.append(title, meta); row.append(info); root.append(row);
     }
+    if ([...choice.options].some(option => option.value === selected)) choice.value = selected;
   };
   const refresh = async () => {
     if (!token) return;
@@ -169,7 +177,7 @@ const std::string& phone_web_ui_javascript() {
     event.preventDefault();
     const url = $("package-url").value.trim();
     try {
-      const result = await api("/api/v1/downloads", {method:"POST", headers:{"Content-Type":"text/plain"}, body:url});
+      const result = await api("/api/v1/downloads", {method:"POST", headers:{"Content-Type":"text/plain", ...( $("storage-choice").value ? {"X-PKGMaster-Storage": $("storage-choice").value} : {})}, body:url});
       $("package-url").value = "";
       message("Download #" + result.id + " queued.");
       await refreshDownloads();
