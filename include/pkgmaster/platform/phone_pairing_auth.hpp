@@ -34,5 +34,6 @@ private:
     std::string session_token_;
     std::uint64_t pairing_expires_ms_{};
     std::uint64_t session_expires_ms_{};
+    bool session_active_{};
 };
 }
