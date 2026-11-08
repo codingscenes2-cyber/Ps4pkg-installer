@@ -33,8 +33,13 @@ int main() {
     assert(restored[0].id == 17);
     assert(restored[0].state == pkgmaster::JobState::Queued);
     assert(restored[0].received_bytes == 400);
+    assert(!service.start("10.255.255.254", 65534, url, qr, error));
+    assert(queue.snapshot().size() == 1 && queue.snapshot()[0].id == 17);
     service.stop();
     assert(service.persistence_error().empty());
+    std::vector<pkgmaster::Job> disk_jobs;
+    assert(pkgmaster::QueueStore::load(snapshot, disk_jobs, error));
+    assert(disk_jobs.size() == 1 && disk_jobs[0].state == pkgmaster::JobState::Downloading);
 
     pkgmaster::Queue bad_queue;
     pkgmaster::DownloadCoordinator bad_downloads(bad_queue);
