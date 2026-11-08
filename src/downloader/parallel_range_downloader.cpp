@@ -188,6 +188,7 @@ ParallelRangeResult download_http_ranges(const ParallelRangeOptions& o) {
     std::atomic_uint completed{0};
     for(const auto& chunk:manifest.chunks)if(chunk.complete)completed.fetch_add(1);
     std::atomic_bool failed{false};
+    DownloadSpeedTracker speed_tracker;
     std::mutex error_mutex,progress_mutex,manifest_mutex;
     std::string first_error;
     auto set_error=[&](const std::string& error){failed=true;std::lock_guard<std::mutex> lock(error_mutex);if(first_error.empty())first_error=error;};
