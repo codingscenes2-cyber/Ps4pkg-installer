@@ -237,7 +237,11 @@ bool NativePackageInstaller::enqueueLocalPackage(
         return false;
     }
 
-    if (expectedTitleId != titleId) {
+    if (titleId[0] == 0) {
+        error = "The PS4 package service returned an empty title ID.";
+        return false;
+    }
+    if (!expectedTitleId.empty() && expectedTitleId != titleId) {
         error = "PKG title ID changed or does not match the inspected metadata.";
         return false;
     }
