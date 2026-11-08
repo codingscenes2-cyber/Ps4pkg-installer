@@ -77,7 +77,13 @@ CoordinatedDownloadResult DownloadCoordinator::run(std::uint64_t id,
     }
     if(out.status==DownloadStatus::Completed) {
         auto job=queue_.get(id);
-        if(job&&job->state!=JobState::Cancelled&&job->state!=JobState::Paused) {
+        if(job&&job->state==JobState::Paused) {
+            // Completion may race with a pause request. A fully published file
+            // wins; move the job back into the normal verification path.
+            queue_.resume(id);
+            job=queue_.get(id);
+        }
+        if(job&&job->state!=JobState::Cancelled) {
             if(job->state==JobState::Resolving)job->state=JobState::Downloading;
             job->received_bytes=std::max(job->received_bytes,received);
             if(expected)job->expected_bytes=expected;
