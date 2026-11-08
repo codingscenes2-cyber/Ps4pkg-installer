@@ -113,7 +113,7 @@ void PhoneApiController::enqueue(std::uint64_t id) {
     {
         std::lock_guard<std::mutex> lock(mutex_);
         if (stopping_) return;
-        if (std::find(pending_.begin(), pending_.end(), id) != pending_.end() || active_id_ == id) return;
+        if (std::find(pending_.begin(), pending_.end(), id) != pending_.end()) return;
         pending_.push_back(id);
     }
     condition_.notify_one();
@@ -248,8 +248,9 @@ bool PhoneApiController::handle(const PhoneHttpRequest& request, PhoneHttpRespon
     if (request.method == "GET" && path == "/api/v1/library") {
         std::vector<LibraryPackage> packages;
         std::string error;
-        if (!std::filesystem::exists(library_index_path_) ||
-            !PackageLibraryIndexStore::load(library_index_path_, packages, error)) {
+        std::error_code exists_error;
+        const bool index_exists = std::filesystem::exists(library_index_path_, exists_error);
+        if (exists_error || (index_exists && !PackageLibraryIndexStore::load(library_index_path_, packages, error))) {
             if (!error.empty()) {
                 response = json_response(500, "{\"error\":\"library_index_unavailable\"}");
                 return true;
