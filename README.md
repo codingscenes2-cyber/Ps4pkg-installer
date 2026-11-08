@@ -6,8 +6,8 @@ A modular PS4 homebrew package-library and download manager prototype.
 
 ## Target and compatibility
 
-- Intended target: PS4 / Orbis homebrew, with firmware 14.00 as a **target to validate**, not a confirmed compatibility claim.
-- Earlier project discussion mentioned a console on firmware 12.xx. Test on the exact firmware and GoldHEN release before relying on this application.
+- Intended target: PS4 / Orbis homebrew on firmware 14.00, matching the owner's current console report. This is a target, **not a verified compatibility claim**.
+- GoldHEN release and console model still need to be recorded during hardware testing. No PS4 hardware test has been completed yet.
 - Build foundation: [OpenOrbis PS4 Toolchain](https://github.com/OpenOrbis/OpenOrbis-PS4-Toolchain). Its own documentation describes the compiler, linker, PS4 libraries, ELF-to-SELF and PKG packaging tools. A successful build does not prove runtime compatibility on every firmware.
 
 ## Feature status
@@ -59,7 +59,7 @@ See [OpenOrbis README](https://github.com/OpenOrbis/OpenOrbis-PS4-Toolchain) and
 
 ## Roadmap
 
-1. Compile the portable core on desktop and add unit tests.
+1. Compile the portable core on desktop and add unit tests (the latest range-planner/state-machine commit has passed GitHub Actions; the newest URL-policy regression run is pending).
 2. Port the app entry point and controller-driven UI using a verified OpenOrbis sample.
 3. Implement the PS4 storage/network adapters with supported APIs.
 4. Implement authenticated QR pairing and phone-to-console job submission.
