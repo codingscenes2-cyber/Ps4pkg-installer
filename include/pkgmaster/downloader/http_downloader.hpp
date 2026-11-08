@@ -15,6 +15,7 @@ struct HttpDownloadOptions {
     long connect_timeout_ms{15000};
     long total_timeout_seconds{0};
     std::uint64_t maximum_bytes_per_second{0}; // zero means unlimited
+    std::string expected_sha256; // optional trusted 64-character hex digest
     bool overwrite{false};
     const std::atomic_bool* cancel{nullptr};
     std::function<void(std::uint64_t received, std::uint64_t total)> progress;
