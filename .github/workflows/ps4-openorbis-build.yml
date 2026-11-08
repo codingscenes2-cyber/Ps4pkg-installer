@@ -1,0 +1,72 @@
+name: PS4 OpenOrbis build
+
+on:
+  push:
+    branches: [main, "work/**"]
+    paths:
+      - "ps4/PKGMaster/**"
+      - ".github/workflows/ps4-openorbis-build.yml"
+  pull_request:
+    branches: [main]
+    paths:
+      - "ps4/PKGMaster/**"
+      - ".github/workflows/ps4-openorbis-build.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  ps4-package:
+    name: Build PS4 ELF and PKG
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install host build tools
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y clang lld make python3 curl
+
+      - name: Download pinned OpenOrbis toolchain
+        env:
+          OO_RELEASE_URL: https://github.com/OpenOrbis/OpenOrbis-PS4-Toolchain/releases/download/v0.5.4/toolchain-llvm-18.tar.gz
+          OO_SHA256: 3c7cd5bb593ca74fa1c13fd59f3938dc0fc07985167f7275063019e63abe4526
+        run: |
+          set -euo pipefail
+          curl --fail --location --retry 3 "$OO_RELEASE_URL" -o "$RUNNER_TEMP/openorbis.tar.gz"
+          echo "$OO_SHA256  $RUNNER_TEMP/openorbis.tar.gz" | sha256sum --check -
+          mkdir -p "$RUNNER_TEMP/openorbis"
+          tar -xzf "$RUNNER_TEMP/openorbis.tar.gz" -C "$RUNNER_TEMP/openorbis"
+          SDK_ROOT="$(find "$RUNNER_TEMP/openorbis" -type f -name link.x -printf '%h\n' -quit)"
+          test -n "$SDK_ROOT"
+          echo "OO_PS4_TOOLCHAIN=$SDK_ROOT" >> "$GITHUB_ENV"
+          echo "OpenOrbis root: $SDK_ROOT"
+          find "$SDK_ROOT/bin/linux" -maxdepth 1 -type f -printf '%f\n' | sort
+          chmod +x "$SDK_ROOT"/bin/linux/*
+
+      - name: Generate package icon
+        run: python3 ps4/PKGMaster/tools/make_icon.py
+
+      - name: Cross-compile and package
+        run: make -C ps4/PKGMaster clean all
+
+      - name: Verify outputs
+        run: |
+          set -euo pipefail
+          test -s ps4/PKGMaster/eboot.bin
+          test -s ps4/PKGMaster/IV0000-PKGM00001_00-PKGMASTER0000001.pkg
+          file ps4/PKGMaster/eboot.bin ps4/PKGMaster/IV0000-PKGM00001_00-PKGMASTER0000001.pkg
+          sha256sum ps4/PKGMaster/eboot.bin ps4/PKGMaster/IV0000-PKGM00001_00-PKGMASTER0000001.pkg
+
+      - name: Upload PS4 test package
+        uses: actions/upload-artifact@v4
+        with:
+          name: pkgmaster-ps4-boot-test
+          path: |
+            ps4/PKGMaster/IV0000-PKGM00001_00-PKGMASTER0000001.pkg
+            ps4/PKGMaster/eboot.bin
+            ps4/PKGMaster/pkg.gp4
+          if-no-files-found: error
+          retention-days: 14
