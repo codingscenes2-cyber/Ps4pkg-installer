@@ -9,6 +9,13 @@ int main(){
  m.source_url="https://cdn.example/game.pkg";m.entity_tag="\"abc-123\"";m.total_bytes=1000;
  m.chunks={{{0,249},true},{{250,499},true},{{500,749},false},{{750,999},false}};
  assert(pkgmaster::validate_resume_manifest(m,error));
+ assert(pkgmaster::resume_identity_matches(m,m.source_url,m.entity_tag,m.total_bytes));
+ assert(!pkgmaster::resume_identity_matches(m,m.source_url,"\"changed\"",m.total_bytes));
+ auto pending=pkgmaster::pending_resume_ranges(m);assert(pending.size()==2&&pending[0].first==500);
+ assert(pkgmaster::mark_resume_chunk_complete(m,2,error));
+ pending=pkgmaster::pending_resume_ranges(m);assert(pending.size()==1&&pending[0].first==750);
+ assert(!pkgmaster::mark_resume_chunk_complete(m,99,error));
+
  const std::string path="pkgmaster-resume-test.db";
  assert(pkgmaster::save_resume_manifest(path,m,error));
  pkgmaster::ResumeManifest restored;
