@@ -59,7 +59,7 @@ bool is_public_address(const sockaddr* address) {
 }
 curl_socket_t guarded_open_socket(void*, curlsocktype purpose,
                                   struct curl_sockaddr* address) {
-    if (purpose != CURLSOCKTYPE_IP ||
+    if (purpose != CURLSOCKTYPE_IPCXN ||
         !is_public_address(reinterpret_cast<const sockaddr*>(&address->addr)))
         return CURL_SOCKET_BAD;
     return ::socket(address->family, address->socktype, address->protocol);
@@ -149,7 +149,11 @@ HttpDownloadResult download_http_file(const HttpDownloadOptions& options) {
     std::unique_ptr<CURL, decltype(&curl_easy_cleanup)> curl(raw, &curl_easy_cleanup);
     TransferContext context{file, &options, &result, false, false};
     curl_easy_setopt(curl.get(), CURLOPT_URL, options.url.c_str());
+#if LIBCURL_VERSION_NUM >= 0x075500
+    curl_easy_setopt(curl.get(), CURLOPT_PROTOCOLS_STR, "http,https");
+#else
     curl_easy_setopt(curl.get(), CURLOPT_PROTOCOLS, CURLPROTO_HTTP | CURLPROTO_HTTPS);
+#endif
     curl_easy_setopt(curl.get(), CURLOPT_FOLLOWLOCATION, 0L);
     curl_easy_setopt(curl.get(), CURLOPT_PROXY, "");
     curl_easy_setopt(curl.get(), CURLOPT_CONNECTTIMEOUT_MS, options.connect_timeout_ms);
