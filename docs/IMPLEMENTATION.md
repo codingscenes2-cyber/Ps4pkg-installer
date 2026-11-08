@@ -95,3 +95,8 @@ An optional libarchive-backed extractor now handles supported archive formats wh
 ## Parallel download telemetry
 
 Parallel range downloads now emit the same DownloadMetrics callback used by the single-stream transport. The tracker receives aggregate completed bytes across all workers, reports percent and smoothed throughput, and exposes ETA only after a positive speed sample exists. The callback is serialized so UI consumers do not need to handle concurrent invocations. A configured bandwidth cap remains an approximate per-worker allocation rather than a strict aggregate token bucket.
+
+
+## PARAM.SFO metadata parsing
+
+A bounded portable parser reads PSF/PARAM.SFO tables and extracts the common package fields TITLE, TITLE_ID, APP_VER, CATEGORY and SYSTEM_VER. It validates the PSF magic, table offsets, entry count, key termination, string lengths and data bounds before publishing parsed metadata. The parser does not validate package signatures, installability, minimum-firmware policy, or the authenticity of metadata. It is a library building block; recursive package discovery, installed-title reconciliation and UI integration remain future work.
