@@ -11,7 +11,9 @@
 #include <cstdlib>
 #include <cstring>
 #include <sstream>
+#include <fcntl.h>
 #include <sys/stat.h>
+#include <unistd.h>
 
 namespace {
 
@@ -104,14 +106,23 @@ int32_t loadModuleByPath(const char* filename) {
     return result;
 }
 
-bool hasPs4PkgMagic(const std::string& path) {
-    FILE* file = std::fopen(path.c_str(), "rb");
-    if (!file) return false;
+bool inspectPkgFile(const std::string& path, uint64_t expectedSize) {
+    const int fd = open(path.c_str(), O_RDONLY);
+    if (fd < 0) return false;
+
+    struct stat info {};
+    const bool regularAndSameSize = fstat(fd, &info) == 0 &&
+        S_ISREG(info.st_mode) && info.st_size > 0 &&
+        static_cast<uint64_t>(info.st_size) == expectedSize;
+
     std::array<unsigned char, 4> magic{};
-    const size_t count = std::fread(magic.data(), 1, magic.size(), file);
-    std::fclose(file);
-    return count == magic.size() && magic[0] == 0x7f &&
-           magic[1] == 'C' && magic[2] == 'N' && magic[3] == 'T';
+    const ssize_t count = regularAndSameSize
+        ? read(fd, magic.data(), magic.size()) : -1;
+    close(fd);
+
+    return count == static_cast<ssize_t>(magic.size()) &&
+        magic[0] == 0x7f && magic[1] == 'C' &&
+        magic[2] == 'N' && magic[3] == 'T';
 }
 
 } // namespace
@@ -213,15 +224,8 @@ bool NativePackageInstaller::enqueueLocalPackage(
         return false;
     }
 
-    struct stat fileInfo {};
-    if (stat(path.c_str(), &fileInfo) != 0 || !S_ISREG(fileInfo.st_mode) ||
-        fileInfo.st_size <= 0 ||
-        static_cast<uint64_t>(fileInfo.st_size) != packageSize) {
-        error = "Package file is missing or its size changed after scanning.";
-        return false;
-    }
-    if (!hasPs4PkgMagic(path)) {
-        error = "Selected file does not have the PS4 PKG CNT header.";
+    if (!inspectPkgFile(path, packageSize)) {
+        error = "Package file is missing, changed, non-regular or has an invalid PS4 PKG header.";
         return false;
     }
 
