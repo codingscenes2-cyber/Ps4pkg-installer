@@ -26,6 +26,7 @@ public:
     PhoneApiController(const PhoneApiController&) = delete;
     PhoneApiController& operator=(const PhoneApiController&) = delete;
 
+    bool start_worker(std::string& error);
     bool handle(const PhoneHttpRequest& request, PhoneHttpResponse& response);
     PhoneApiHandler handler() { return [this](const PhoneHttpRequest& r, PhoneHttpResponse& s) { return handle(r, s); }; }
 
