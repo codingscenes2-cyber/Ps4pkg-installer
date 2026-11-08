@@ -10,6 +10,7 @@
 #include "graphics.h"
 #include "log.h"
 #include "pkg_scanner.hpp"
+#include "pkg_inspector.hpp"
 
 static constexpr int kWidth = 1920;
 static constexpr int kHeight = 1080;
@@ -188,6 +189,68 @@ static void drawLibrary(Scene2D* scene, const std::vector<PackageEntry>& package
              muted, 2);
 }
 
+static void drawDetails(Scene2D* scene, const PackageEntry& package,
+                        const pkgmaster::PackageMetadata& metadata,
+                        const std::string& error, const std::string& status,
+                        bool controllerReady) {
+    const Color background{12, 18, 30};
+    const Color panel{22, 32, 49};
+    const Color cyan{56, 218, 205};
+    const Color white{235, 242, 250};
+    const Color muted{139, 158, 180};
+
+    scene->FrameBufferFill(background);
+    scene->DrawRectangle(0, 0, kWidth, 132, panel);
+    scene->DrawRectangle(0, 126, kWidth, 7, cyan);
+    drawText(scene, 112, 42, "PKGMASTER", cyan, 9);
+    drawText(scene, 1160, 68, "PACKAGE DETAILS", muted, 3);
+    drawText(scene, 116, 166, "PARAM SFO INSPECTION", white, 3);
+
+    scene->DrawRectangle(110, 235, 1700, 620, panel);
+    drawText(scene, 155, 270, "FILE", muted, 3);
+    const std::string filename = package.name.substr(0, 54);
+    drawText(scene, 155, 315, filename.c_str(), white, 4);
+
+    drawText(scene, 155, 405, "TITLE", muted, 3);
+    const std::string title = metadata.title.empty() ? "UNKNOWN" : metadata.title;
+    drawText(scene, 155, 445, title.substr(0, 54).c_str(), cyan, 4);
+
+    drawText(scene, 155, 525, "TITLE ID", muted, 2);
+    drawText(scene, 155, 558,
+             metadata.title_id.empty() ? "UNKNOWN" : metadata.title_id.c_str(),
+             white, 3);
+
+    drawText(scene, 650, 525, "VERSION", muted, 2);
+    drawText(scene, 650, 558,
+             metadata.app_version.empty() ? "UNKNOWN" : metadata.app_version.c_str(),
+             white, 3);
+
+    drawText(scene, 1050, 525, "CATEGORY", muted, 2);
+    drawText(scene, 1050, 558,
+             metadata.category.empty() ? "UNKNOWN" : metadata.category.c_str(),
+             white, 3);
+
+    drawText(scene, 155, 650, "MINIMUM SYSTEM VERSION", muted, 2);
+    drawText(scene, 155, 683,
+             metadata.system_version.empty() ? "UNKNOWN" : metadata.system_version.c_str(),
+             white, 3);
+
+    if (!error.empty()) {
+        drawText(scene, 155, 765, "METADATA ERROR", cyan, 2);
+        drawText(scene, 155, 795, error.substr(0, 80).c_str(), white, 2);
+    }
+
+    scene->DrawRectangle(110, 885, 1700, 105, panel);
+    const std::string shortStatus = status.substr(0, 86);
+    drawText(scene, 150, 908, shortStatus.c_str(), white, 3);
+    drawText(scene, 110, 1015,
+             controllerReady ? "CIRCLE BACK TO USB PACKAGE LIST"
+                              : "CONTROLLER NOT READY",
+             muted, 3);
+    drawText(scene, 110, 1055, "PACKAGE INSTALLER HANDOFF IS NOT ENABLED",
+             muted, 2);
+}
+
 int main() {
     setvbuf(stdout, nullptr, _IONBF, 0);
     DEBUGLOG << "Starting PKGMaster native UI";
@@ -224,6 +287,8 @@ int main() {
     int selected = 0;
     int packageSelected = 0;
     std::vector<PackageEntry> packages;
+    pkgmaster::PackageMetadata selectedMetadata;
+    std::string metadataError;
     std::string status = "BOOTED - SELECT PACKAGE LIBRARY TO SCAN USB STORAGE";
     int frameId = 0;
 
@@ -255,13 +320,23 @@ int main() {
                     } else if (page == 0) {
                         status = std::string(menuItems[selected]) +
                                  " - MODULE NOT CONNECTED YET";
-                    } else if (!packages.empty()) {
-                        status = "SELECTED: " + packages[packageSelected].name +
-                                 " - INSTALLER HANDOFF NOT ENABLED";
+                    } else if (page == 1 && !packages.empty()) {
+                        metadataError.clear();
+                        selectedMetadata = pkgmaster::PackageMetadata{};
+                        if (inspect_pkg_param_sfo(packages[packageSelected].path,
+                                                  selectedMetadata, metadataError)) {
+                            status = "PACKAGE METADATA READ SUCCESSFULLY";
+                        } else {
+                            status = "PACKAGE METADATA COULD NOT BE READ";
+                        }
+                        page = 2;
                     }
                 }
                 if (pressed & ORBIS_PAD_BUTTON_CIRCLE) {
-                    if (page == 1) {
+                    if (page == 2) {
+                        page = 1;
+                        status = "RETURNED TO USB PACKAGE LIST";
+                    } else if (page == 1) {
                         page = 0;
                         status = "RETURNED TO MAIN MENU";
                     } else {
@@ -277,8 +352,14 @@ int main() {
             }
         }
 
-        if (page == 0) drawInterface(scene, selected, status, controllerReady);
-        else drawLibrary(scene, packages, packageSelected, status, controllerReady);
+        if (page == 0) {
+            drawInterface(scene, selected, status, controllerReady);
+        } else if (page == 1) {
+            drawLibrary(scene, packages, packageSelected, status, controllerReady);
+        } else if (page == 2 && !packages.empty()) {
+            drawDetails(scene, packages[packageSelected], selectedMetadata,
+                        metadataError, status, controllerReady);
+        }
 
         scene->SubmitFlip(frameId);
         scene->FrameWait(frameId);
