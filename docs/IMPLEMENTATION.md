@@ -1,8 +1,14 @@
 # Implementation notes
 
+## Queue persistence
+
+QueueStore writes a versioned, tab-delimited snapshot. String fields are hex encoded so tabs, newlines and arbitrary bytes cannot corrupt record boundaries. Loading is transactional: it parses into a temporary vector, validates IDs, states and byte counters, and only replaces caller state after the complete file succeeds. Saving writes a sibling temporary file and renames it over the target on the same filesystem.
+
+This stores queue metadata only. It does not yet checkpoint partial download files, ETags, Last-Modified values, per-range completion maps, or fsync the containing directory. Those are required before claiming crash-safe download resume. Callers must choose a writable private data path and serialize concurrent save operations.
+
 ## Native installer boundary
 
-The project intentionally defines `InstallerBridge` as an adapter. The current implementation returns `Unsupported`. Before implementing it, identify a documented and firmware-compatible handoff mechanism, confirm its required privileges/payload state, and test the acceptance/error callbacks on a real console. Do not call private or guessed symbols and do not claim that a queue entry is installing without authoritative status.
+The project intentionally defines InstallerBridge as an adapter. The current implementation returns Unsupported. Before implementing it, identify a documented and firmware-compatible handoff mechanism, confirm its required privileges/payload state, and test the acceptance/error callbacks on a real console. Do not call private or guessed symbols and do not claim a queue entry is installing without authoritative status.
 
 ## Downloader design requirements
 
@@ -11,7 +17,7 @@ The transport milestone should:
 - use bounded workers and bounded buffers;
 - persist ETag/Last-Modified, total length, chunk map and destination path atomically;
 - validate Content-Range for every part and revalidate metadata on resume;
-- write to a temporary `.part` file and rename only after complete length/hash verification;
+- write to a temporary .part file and rename only after complete length/hash verification;
 - handle redirect loops and re-run URL/IP policy on each redirect;
 - support pause/cancel with cooperative worker shutdown.
 
@@ -23,7 +29,7 @@ The service should bind to the LAN interface only after the user enables it. Gen
 
 ## Archive handling
 
-Use a maintained archive library only after confirming its PS4 port and license. Extract into a dedicated staging directory. Reject absolute paths, `..`, symlinks, hardlinks and suspicious expansion ratios. Require the user to provide a password; do not ship a password-cracking dictionary.
+Use a maintained archive library only after confirming its PS4 port and license. Extract into a dedicated staging directory. Reject absolute paths, .., symlinks, hardlinks and suspicious expansion ratios. Require the user to provide a password; do not ship a password-cracking dictionary.
 
 ## Firmware validation
 

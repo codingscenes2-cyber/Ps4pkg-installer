@@ -70,19 +70,23 @@ bool QueueStore::save(const std::string& path, const std::vector<Job>& jobs,
     error.clear();
     if (path.empty()) { error = "Queue path is empty"; return false; }
     const std::string temporary = path + ".tmp";
+    std::vector<std::uint64_t> seen_ids;
     {
         std::ofstream out(temporary, std::ios::binary | std::ios::trunc);
         if (!out) { error = "Cannot open temporary queue file"; return false; }
         out << "PKGMASTER_QUEUE\t1\n";
         for (const auto& job : jobs) {
             const auto state = static_cast<unsigned>(job.state);
-            if (!job.id || !valid_state(state) ||
+            bool duplicate_id = false;
+            for (const auto previous : seen_ids) duplicate_id = duplicate_id || previous == job.id;
+            if (!job.id || duplicate_id || !valid_state(state) ||
                 (job.expected_bytes && job.received_bytes > job.expected_bytes)) {
                 error = "Queue contains an invalid job";
                 out.close();
                 std::remove(temporary.c_str());
                 return false;
             }
+            seen_ids.push_back(job.id);
             out << job.id << '\t' << job.expected_bytes << '\t'
                 << job.received_bytes << '\t' << state << '\t'
                 << hex_encode(job.source_url) << '\t'

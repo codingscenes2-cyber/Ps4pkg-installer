@@ -2,23 +2,24 @@
 
 A modular PS4 homebrew package-library and download manager prototype.
 
-> Status: engineering scaffold, not a production installer. Portable core, range validation, queue state model, URL policy, and capability gating are in development. No verified Orbis UI backend, GoldHEN installer bridge, PS4 HTTP daemon, RAR extraction, or tested PKG exists yet.
+> Status: engineering scaffold, not a production installer. Portable queue/state logic, versioned queue persistence, range planning/response validation, URL policy, and capability gating are implemented and covered by host tests. The real HTTP transport, authenticated phone service, QR pairing, PS4 UI/runtime adapters, archive extraction, and native installer bridge remain incomplete. No installable PS4 PKG has been built or hardware-tested.
 
 ## Target and compatibility
 - Owner-reported target: PS4 firmware 14.00. This is not a verified compatibility claim.
 - Compatibility strategy: capability-based, not tied to one GoldHEN release. Unknown versions may launch portable parts; platform features stay disabled until their adapters report the required capability.
 - GoldHEN release, console model, and hardware results have not been recorded.
-- Build foundation: OpenOrbis PS4 Toolchain. A successful build does not prove runtime compatibility on every firmware.
+- Build foundation: OpenOrbis PS4 Toolchain. A successful host build does not prove runtime compatibility on every firmware.
 
 See docs/COMPATIBILITY.md.
 
 ## Feature status
 | Area | Current state |
 |---|---|
-| Download queue | Initial portable implementation |
-| Multi-range downloads | Range planner and response validation; transport pending |
+| Download queue | Portable state model with pause/resume/retry/cancel |
+| Queue persistence | Versioned snapshot load/save, validation and same-filesystem temp-file rename |
+| Multi-range downloads | Range planner and response validation; HTTP transport pending |
 | Phone submission | Static web UI; authenticated HTTP service pending |
-| QR pairing | API contract pending |
+| QR pairing | API contract only; generation and session exchange pending |
 | Native PS4 UI/controller | Backend boundary only |
 | Native package installation | Not implemented; verified bridge required |
 | USB/HDD scanning | Adapter pending |
@@ -27,7 +28,7 @@ See docs/COMPATIBILITY.md.
 | Installable PKG | Not built or hardware-tested |
 
 ## Architecture
-- src/core: portable queue, state and validation logic.
+- src/core: portable queue, persistence, state and validation logic.
 - src/platform: filesystem, network, installer and capability adapters.
 - src/ui: PS4 rendering/input adapter.
 - src/server and web: phone management service and UI.
