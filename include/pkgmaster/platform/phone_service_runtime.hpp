@@ -40,6 +40,8 @@ private:
     std::string library_index_path_;
     std::string queue_snapshot_path_;
     std::string persistence_error_;
+    bool queue_initialized_{false};
+    bool started_{false};
     std::vector<StorageCandidate> storage_candidates_;
     std::unique_ptr<PhoneApiController> controller_;
     std::unique_ptr<PhoneLanServer> server_;
