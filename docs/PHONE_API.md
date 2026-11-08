@@ -91,3 +91,8 @@ The listener records its exact configured IPv4-and-port authority and validates 
 ## Request read deadline
 
 Each accepted client connection has a 2-second socket read timeout and a 10-second absolute request-read deadline. The deadline applies across the complete header and body rather than resetting whenever another byte arrives, limiting slow-drip clients from occupying the single-client listener indefinitely. Existing total request, header and body byte caps remain enforced by the receiver and parser.
+
+
+## Pairing brute-force cooldown
+
+The one-time pairing endpoint accepts at most five failed secret attempts before applying a 30-second monotonic-clock cooldown. Attempts during the cooldown receive HTTP 429. A successful one-time exchange resets the limiter; each new listener start also resets it. This is a local-network defense-in-depth control, not an Internet-facing authentication service.
