@@ -122,7 +122,9 @@ bool receive_request(Socket client, std::string& bytes) {
     char buffer[4096];
     std::size_t expected_total = 0;
     bool have_header = false;
+    const auto deadline = std::chrono::steady_clock::now() + std::chrono::seconds(10);
     while (bytes.size() < max_request) {
+        if (std::chrono::steady_clock::now() >= deadline) return false;
 #if defined(_WIN32)
         const int count = ::recv(client, buffer, sizeof(buffer), 0);
 #else
