@@ -118,7 +118,8 @@ ParallelRangeResult download_http_ranges(const ParallelRangeOptions& o) {
     if(t.url.empty()||t.destination_path.empty()||!t.maximum_bytes||
        t.connect_timeout_ms<=0||t.total_timeout_seconds<0||o.connections<2||
        o.connections>8||!o.minimum_part_bytes||
-       t.maximum_bytes_per_second>static_cast<std::uint64_t>(std::numeric_limits<std::int64_t>::max())||\n       (!t.expected_sha256.empty()&&!is_sha256_hex(t.expected_sha256))){out.error="Invalid parallel download options.";return out;}
+       t.maximum_bytes_per_second>static_cast<std::uint64_t>(std::numeric_limits<std::int64_t>::max())||
+       (!t.expected_sha256.empty()&&!is_sha256_hex(t.expected_sha256))){out.error="Invalid parallel download options.";return out;}
     std::string policy_error;
     if(!is_allowed_download_url(t.url,policy_error)){out.error=policy_error;return out;}
 #ifndef PKGMASTER_HAS_CURL
