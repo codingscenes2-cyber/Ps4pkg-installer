@@ -1,5 +1,6 @@
 #include "pkgmaster/package/param_sfo.hpp"
 #include <cassert>
+#include <algorithm>
 #include <cstdint>
 #include <string>
 #include <vector>
