@@ -147,11 +147,16 @@ ParallelRangeResult download_http_ranges(const ParallelRangeOptions& o) {
         if(!assembler.open_existing(t.destination_path,plan,t.maximum_bytes,t.overwrite,completed,out.error))return out;
         for(std::size_t i=0;i<manifest.chunks.size();++i) {
             if(manifest.chunks[i].complete) {
-                if(!manifest.chunks[i].checksum_valid) {
-                    out.error="A completed range has no integrity checksum; refusing unsafe legacy resume.";
-                    return out;
+                const bool verified=manifest.chunks[i].checksum_valid &&
+                    assembler.verify_chunk_checksum(i,manifest.chunks[i].checksum,out.error);
+                if(!verified) {
+                    std::string reset_error;
+                    if(!assembler.invalidate_chunk(i,reset_error)){out.error=reset_error;return out;}
+                    manifest.chunks[i].complete=false;
+                    manifest.chunks[i].checksum_valid=false;
+                    manifest.chunks[i].checksum=0;
+                    if(!save_resume_manifest(manifest_path,manifest,out.error))return out;
                 }
-                if(!assembler.verify_chunk_checksum(i,manifest.chunks[i].checksum,out.error))return out;
             }
         }
     } else {
