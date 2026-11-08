@@ -4,6 +4,7 @@
 #include "pkgmaster/downloader/range_plan.hpp"
 #include "pkgmaster/downloader/resume_manifest.hpp"
 #include "pkgmaster/core/url_policy.hpp"
+#include "pkgmaster/core/crc32.hpp"
 #include <atomic>
 #include <cstdio>
 #include <cstdlib>
@@ -144,6 +145,20 @@ ParallelRangeResult download_http_ranges(const ParallelRangeOptions& o) {
         completed.reserve(manifest.chunks.size());
         for(const auto& chunk:manifest.chunks){plan.parts.push_back(chunk.range);completed.push_back(chunk.complete);}
         if(!assembler.open_existing(t.destination_path,plan,t.maximum_bytes,t.overwrite,completed,out.error))return out;
+        for(std::size_t i=0;i<manifest.chunks.size();++i) {
+            if(manifest.chunks[i].complete) {
+                const bool verified=manifest.chunks[i].checksum_valid &&
+                    assembler.verify_chunk_checksum(i,manifest.chunks[i].checksum,out.error);
+                if(!verified) {
+                    std::string reset_error;
+                    if(!assembler.invalidate_chunk(i,reset_error)){out.error=reset_error;return out;}
+                    manifest.chunks[i].complete=false;
+                    manifest.chunks[i].checksum_valid=false;
+                    manifest.chunks[i].checksum=0;
+                    if(!save_resume_manifest(manifest_path,manifest,out.error))return out;
+                }
+            }
+        }
     } else {
         plan=make_range_plan(probe.content_length,o.connections,o.minimum_part_bytes);
         if(plan.parts.size()<2){out.error="Object is too small to benefit from parallel ranges.";return out;}
@@ -192,7 +207,8 @@ ParallelRangeResult download_http_ranges(const ParallelRangeOptions& o) {
             if(!assembler.write_chunk(index,body.bytes.data(),body.bytes.size(),why)){set_error(why);return;}
             {
                 std::lock_guard<std::mutex> lock(manifest_mutex);
-                if(!mark_resume_chunk_complete(manifest,index,why)||!save_resume_manifest(manifest_path,manifest,why)){set_error(why);return;}
+                const auto checksum=crc32(body.bytes.data(),body.bytes.size());
+                if(!mark_resume_chunk_complete(manifest,index,why,checksum,true)||!save_resume_manifest(manifest_path,manifest,why)){set_error(why);return;}
             }
             const auto now=received.fetch_add(body.bytes.size())+body.bytes.size();completed.fetch_add(1);
             if(t.progress){try{std::lock_guard<std::mutex> lock(progress_mutex);t.progress(now,probe.content_length);}catch(...){set_error("Progress callback failed.");return;}}

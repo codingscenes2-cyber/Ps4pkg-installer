@@ -1,4 +1,5 @@
 #include "pkgmaster/downloader/resume_manifest.hpp"
+#include "pkgmaster/core/crc32.hpp"
 #include <cassert>
 #include <cstdio>
 #include <limits>
@@ -12,7 +13,7 @@ int main(){
  assert(pkgmaster::resume_identity_matches(m,m.source_url,m.entity_tag,m.total_bytes));
  assert(!pkgmaster::resume_identity_matches(m,m.source_url,"\"changed\"",m.total_bytes));
  auto pending=pkgmaster::pending_resume_ranges(m);assert(pending.size()==2&&pending[0].first==500);
- assert(pkgmaster::mark_resume_chunk_complete(m,2,error));
+ assert(pkgmaster::mark_resume_chunk_complete(m,2,error,0x12345678u,true));
  pending=pkgmaster::pending_resume_ranges(m);assert(pending.size()==1&&pending[0].first==750);
  assert(!pkgmaster::mark_resume_chunk_complete(m,99,error));
 
@@ -23,6 +24,9 @@ int main(){
  assert(restored.source_url==m.source_url&&restored.entity_tag==m.entity_tag);
  assert(restored.total_bytes==1000&&restored.chunks.size()==4);
  assert(restored.chunks[1].complete&&restored.chunks[2].complete&&!restored.chunks[3].complete);
+ assert(restored.chunks[2].checksum_valid&&restored.chunks[2].checksum==0x12345678u);
+ const char* vector_text="123456789";
+ assert(pkgmaster::crc32(vector_text,9)==0xcbf43926u);
  auto invalid=m;invalid.chunks[1].range.first=249;
  assert(!pkgmaster::validate_resume_manifest(invalid,error));
  invalid=m;invalid.chunks.back().range.last=1000;

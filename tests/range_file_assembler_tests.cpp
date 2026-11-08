@@ -1,4 +1,5 @@
 #include "pkgmaster/downloader/range_file_assembler.hpp"
+#include "pkgmaster/core/crc32.hpp"
 #include <cassert>
 #include <cstdio>
 #include <fstream>
@@ -48,6 +49,10 @@ int main() {
     assert(recovered.open_existing(destination, recovery_plan, 100, false,
                                    std::vector<bool>{false, true}, error));
     assert(recovered.chunk_complete(1));
+    assert(recovered.verify_chunk_checksum(1, pkgmaster::crc32(second.data(), second.size()), error));
+    assert(!recovered.verify_chunk_checksum(1, 0xdeadbeefu, error));
+    assert(recovered.invalidate_chunk(1, error));
+    assert(recovered.write_chunk(1, second.data(), second.size(), error));
     assert(!recovered.chunk_complete(0));
     assert(recovered.write_chunk(0, first.data(), first.size(), error));
     assert(recovered.complete());

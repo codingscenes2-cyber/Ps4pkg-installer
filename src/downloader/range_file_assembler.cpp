@@ -1,9 +1,12 @@
 #include "pkgmaster/downloader/range_file_assembler.hpp"
+#include "pkgmaster/core/crc32.hpp"
 
 #include <cstdio>
 #include <fstream>
 #include <limits>
 #include <filesystem>
+#include <array>
+#include <algorithm>
 
 namespace pkgmaster {
 namespace {
@@ -159,6 +162,53 @@ bool RangeFileAssembler::write_chunk(std::size_t index, const void* data,
 bool RangeFileAssembler::chunk_complete(std::size_t index) const {
     std::lock_guard<std::mutex> lock(mutex_);
     return initialized_ && index < completed_.size() && completed_[index];
+}
+
+bool RangeFileAssembler::verify_chunk_checksum(std::size_t index,
+                                                    std::uint32_t expected,
+                                                    std::string& error) {
+    std::lock_guard<std::mutex> lock(mutex_);
+    if (!initialized_ || index >= plan_.parts.size() || !completed_[index]) {
+        error = "Cannot verify a range that is not marked complete.";
+        return false;
+    }
+    const auto& range = plan_.parts[index];
+    std::array<char, 65536> buffer{};
+    std::uint64_t remaining = range.length();
+    std::uint64_t offset = range.first;
+    std::uint32_t checksum = 0;
+    file_.flush();
+    file_.clear();
+    while (remaining) {
+        const auto amount = static_cast<std::streamsize>(
+            std::min<std::uint64_t>(remaining, buffer.size()));
+        file_.seekg(static_cast<std::streamoff>(offset));
+        file_.read(buffer.data(), amount);
+        if (file_.gcount() != amount) {
+            error = "Could not read a completed range for integrity verification.";
+            return false;
+        }
+        checksum = crc32_update(checksum, buffer.data(), static_cast<std::size_t>(amount));
+        offset += static_cast<std::uint64_t>(amount);
+        remaining -= static_cast<std::uint64_t>(amount);
+    }
+    if (checksum != expected) {
+        error = "A completed staging range failed its CRC32 integrity check.";
+        return false;
+    }
+    error.clear();
+    return true;
+}
+
+bool RangeFileAssembler::invalidate_chunk(std::size_t index, std::string& error) {
+    std::lock_guard<std::mutex> lock(mutex_);
+    if (!initialized_ || published_ || index >= completed_.size()) {
+        error = "Cannot invalidate an unknown or published range.";
+        return false;
+    }
+    completed_[index] = false;
+    error.clear();
+    return true;
 }
 
 bool RangeFileAssembler::complete() const {
