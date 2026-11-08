@@ -105,3 +105,8 @@ A bounded portable parser reads PSF/PARAM.SFO tables and extracts the common pac
 ## Extracted package library scanner
 
 A bounded host-portable scanner now walks configured directory roots for extracted-title metadata at `sce_sys/param.sfo` (and optionally a root-level `param.sfo`). It does not recurse through symbolic links, skips inaccessible directories and malformed SFO files, enforces depth/directory/result limits, deduplicates metadata paths, and returns deterministic title-ID/path ordering. The scanner reads metadata only; it does not inspect or unpack `.pkg` archives, reconcile installed titles, or validate package signatures. The caller should provide trusted, readable roots and keep scan limits conservative on console storage.
+
+
+## Package library index persistence
+
+`PackageLibraryIndexStore` persists extracted-title metadata and the paths to each package directory and `param.sfo` file. The versioned tab-delimited format hex-encodes string fields, sorts records deterministically, rejects duplicate metadata paths, and enforces record, string and total-file size limits. Loading is transactional: malformed headers, records, duplicate paths, invalid numbers or oversized files leave the caller's existing collection unchanged. Saving writes a sibling temporary file and renames it into place. This is a metadata cache, not a source of truth: rescan directories when freshness matters, treat the index as untrusted input, and do not use it to authorize installation. The current implementation does not fsync the file or parent directory, so it does not promise power-loss durability.
